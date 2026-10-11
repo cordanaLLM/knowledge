@@ -1,0 +1,35 @@
+---
+# Public tree check: no tracked file holds a home path, a private address outside the
+# list in scripts/public-tree-addresses.txt, or a host name under a retired domain.
+name: public-tree
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-tree-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Public tree check
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The planted cases run first: a check that no longer refuses them proves nothing
+      # about the tree. Both steps need only the Python and the git of the runner.
+      - name: Planted cases
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
+      - name: Check the tracked tree
+        run: python3 scripts/check_public_tree.py

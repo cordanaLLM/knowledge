@@ -1,0 +1,304 @@
+{
+  "metrics_id": "retrieval-evaluation-metrics:sha256:fd3d6f45f4a47624bfaf805bab0d24fc7b19e5a3cfa73b9c7c8d20393b15c894",
+  "metrics_payload_sha256": "sha256:fd3d6f45f4a47624bfaf805bab0d24fc7b19e5a3cfa73b9c7c8d20393b15c894",
+  "schema_version": "1.0.0",
+  "metrics_kind": "retrieval_recomputed_metrics",
+  "state": "failed",
+  "suite_id": "retrieval-evaluation-suite:sha256:ca99e6ce163abed3c7cede5e371db63f6cb3a224560dca29ac8963ef36ad27fb",
+  "suite_document_sha256": "sha256:d1862e296076d364027ab8e7946ef1f6f4ba8b7849bfd8b5bb714a5406059a99",
+  "lexical_candidate_id": "retrieval-candidate:sha256:7577cb60f20d923e677305a97137b1f166717f3d96dc72648e3dc99376bdfa38",
+  "lexical_candidate_document_sha256": "sha256:c79108199b84290d5999730ee82ca9755ea1526d41696b4ec13f5c722f0935c1",
+  "hybrid_candidate_id": "hybrid-retrieval-candidate:sha256:dedc9fcfd82a91ceed3a4d07511a67a78039df8a32779efd51b4d990ece42053",
+  "hybrid_candidate_document_sha256": "sha256:7803b6bcdbac913d7ad138c8c50ab6a4ad40ba99897587c00619ac21bdded431",
+  "admission_policy_id": "retrieval-admission:sha256:271621cf16a5e49b93006363680ed04e0885caafde9e9f7a8715f70db13966ae",
+  "admission_policy_document_sha256": "sha256:21765b1c6129b8a33d39212ff2a9e1053cdbdb51a8ff695994b3d182dccece34",
+  "metric_algorithm": "macro-recall-mrr-ndcg-fixed-point@1.0.0",
+  "metric_scale": 1000000,
+  "cutoff_k": 10,
+  "target_mode": "fusion_only",
+  "case_metrics": [
+    {
+      "case_id": "case-workflows-command-injection",
+      "class": "security",
+      "profile": "hybrid",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 1000000,
+      "returned_span_ids": [
+        "evidence-span:sha256:62e4db95c04142755fdb4b849067678f394f64bb989925363751ee3e801e2197",
+        "evidence-span:sha256:82238f8868d489fe27a315ea31ed8b1448aad34688736ac669c5847653830fa1",
+        "evidence-span:sha256:0953f8075ee25f51259baa852729892db00e1573b6507f781b3f7c10db6ad0a7",
+        "evidence-span:sha256:9e72087bf19f7f270e97ae2194835f2cd9200828bb81de5c05acb518f5d1c164",
+        "evidence-span:sha256:8eed23cb59225422089620ea0eaca23cfd9835962d0c81c10c7a70dae37a5900",
+        "evidence-span:sha256:a66974e6c547b82cc9990be50793ea45ab60f64e69f9715e6621dc815a24708e",
+        "evidence-span:sha256:a6f572a545bb9180195193354bef28641bfceb5bbd9d7c69d3c6e40b34502093",
+        "evidence-span:sha256:43f44662ab8f15dd951c836f19391c581c7daadaeecd7ddc22a701c86e50088b",
+        "evidence-span:sha256:509e00f471e02c97c217bdeb1e9627e4d15b5f55a8831114c7678a1ebacc30ca",
+        "evidence-span:sha256:78d2d2558ca41dfecc8e326912d78f19351ef0f9e58f96e732125c135f999b85"
+      ]
+    },
+    {
+      "case_id": "case-workflows-command-injection",
+      "class": "security",
+      "profile": "lexical",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 250000,
+      "ndcg_ppm": 430677,
+      "returned_span_ids": [
+        "evidence-span:sha256:c92adf759f5aacc98b414aadc768366d698ca8d7e17d61420ede6d50d12d286c",
+        "evidence-span:sha256:57a8d821b5708f60f07de545dc80761123090e7f8955c1984ac355a09f1e55a8",
+        "evidence-span:sha256:212f9cada7a4dfd7178b600696f99ba826972f216af777b53c984b7694e78afd",
+        "evidence-span:sha256:62e4db95c04142755fdb4b849067678f394f64bb989925363751ee3e801e2197",
+        "evidence-span:sha256:0953f8075ee25f51259baa852729892db00e1573b6507f781b3f7c10db6ad0a7",
+        "evidence-span:sha256:3f71e3974636282878700400430f0812db67162c3e9c5d9814bff9a54df602a4",
+        "evidence-span:sha256:278064b01b0866779e449de9a256ac737377623efdc2b552e0065fa91de95439",
+        "evidence-span:sha256:7fe2b9768fc84694d4c16880d5141f79c2ef3259307c928ce484fac79aae154e",
+        "evidence-span:sha256:34a945f96f9ca9d79d9cc8ccae486a01077d0b0b16ce939bd3a387c50a389005",
+        "evidence-span:sha256:8ab88edf2cfcc9ca977ffbbb87a8e2ed9c9d689aff4cd43f3f095624c14a7165"
+      ]
+    },
+    {
+      "case_id": "case-workflows-default-render",
+      "class": "render",
+      "profile": "hybrid",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 833991,
+      "returned_span_ids": [
+        "evidence-span:sha256:95fb47c4a10933433130995460b7687732dfdf620427ca5367196dc1a1357218",
+        "evidence-span:sha256:28e8e0b1b76eaa22c80aad34e2344bcd98a67697069efb07bcdeabb662c231cc",
+        "evidence-span:sha256:5742b3baae60f5cb88e9d50b735ea0577177bffe17019c3ea7edab775cb0bde5",
+        "evidence-span:sha256:1a626d22daab64b10c412aa5334245962518104534cea75506d3c43498b064d3",
+        "evidence-span:sha256:965403142cb2e79ecf26e49815cad67f56f0146406e8499dc3846daee9f0b728",
+        "evidence-span:sha256:2796492e5cc87b1f5aff706c495e0c00ddc0768f34cb6a918ca0d7495b700446",
+        "evidence-span:sha256:74e7d6b561d1ac9351899b535193c1c8952a7c75f295f13d9f3dc2f90b62e4fd",
+        "evidence-span:sha256:278064b01b0866779e449de9a256ac737377623efdc2b552e0065fa91de95439",
+        "evidence-span:sha256:142aac92dc751acc36ea0751d6fe66692a3f5fc2fdfd959a537762313cbf17fb",
+        "evidence-span:sha256:a570639e9d514e11c305cf26d28e1296d0b3d96fc19e69d24ee84ae6fdfeaf02"
+      ]
+    },
+    {
+      "case_id": "case-workflows-default-render",
+      "class": "render",
+      "profile": "lexical",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 200000,
+      "ndcg_ppm": 378825,
+      "returned_span_ids": [
+        "evidence-span:sha256:b914370efa73342bbdef9aa0f37d0c57c776c820eb9f15e55083f47fdc425040",
+        "evidence-span:sha256:2796492e5cc87b1f5aff706c495e0c00ddc0768f34cb6a918ca0d7495b700446",
+        "evidence-span:sha256:ba9e77b535cd3a84b454d51f7bc89db3d0d43b81868fd70d398da5345e026a36",
+        "evidence-span:sha256:8eb0c0304f60c99636092ed99ae695c27da360722465bce464ee6206ded88b20",
+        "evidence-span:sha256:95fb47c4a10933433130995460b7687732dfdf620427ca5367196dc1a1357218",
+        "evidence-span:sha256:f32e6226099014ef8651c41c0e5e84aaff2bfee085041892ef3c84c81350f6c3",
+        "evidence-span:sha256:278064b01b0866779e449de9a256ac737377623efdc2b552e0065fa91de95439",
+        "evidence-span:sha256:28e8e0b1b76eaa22c80aad34e2344bcd98a67697069efb07bcdeabb662c231cc",
+        "evidence-span:sha256:79b958671dbc192faa89ce00bd6e69a9d4da76a0c55b7e6bbc69e5460312e9f5",
+        "evidence-span:sha256:0953f8075ee25f51259baa852729892db00e1573b6507f781b3f7c10db6ad0a7"
+      ]
+    },
+    {
+      "case_id": "case-workflows-retry-operation",
+      "class": "operation",
+      "profile": "hybrid",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 500000,
+      "ndcg_ppm": 475230,
+      "returned_span_ids": [
+        "evidence-span:sha256:9e72087bf19f7f270e97ae2194835f2cd9200828bb81de5c05acb518f5d1c164",
+        "evidence-span:sha256:6e12720fc61bffb9631b436516f6512f4366fbd97f2bb627487487655bc6d1da",
+        "evidence-span:sha256:22afe620869bbfc2191356007d1d56a67267600e219b3508482b424220666436",
+        "evidence-span:sha256:b17dc09e87c902a5d34c8144f66b3aab6afa336d369dcf57090142b83f6103d5",
+        "evidence-span:sha256:f7bfb2900b6a67322a6baacbcb946496e369dee2b1a13e128a7a484a7af47840",
+        "evidence-span:sha256:622b277c268ce59d7d8153d06c91489a750755105104fe5135d4377c0c60791a",
+        "evidence-span:sha256:62e4db95c04142755fdb4b849067678f394f64bb989925363751ee3e801e2197",
+        "evidence-span:sha256:82238f8868d489fe27a315ea31ed8b1448aad34688736ac669c5847653830fa1",
+        "evidence-span:sha256:d74ad020548498dd0e5316dac033095f764886f4769e02683f260ea588b5e4ce",
+        "evidence-span:sha256:149c3bb11abeabbf9e45247554ab83dd005d08f4d257a847e69a75248b042921"
+      ]
+    },
+    {
+      "case_id": "case-workflows-retry-operation",
+      "class": "operation",
+      "profile": "lexical",
+      "recall_ppm": 500000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 337351,
+      "returned_span_ids": [
+        "evidence-span:sha256:6e12720fc61bffb9631b436516f6512f4366fbd97f2bb627487487655bc6d1da",
+        "evidence-span:sha256:22afe620869bbfc2191356007d1d56a67267600e219b3508482b424220666436",
+        "evidence-span:sha256:9e72087bf19f7f270e97ae2194835f2cd9200828bb81de5c05acb518f5d1c164",
+        "evidence-span:sha256:ade0f3e3779c297464dd4e9aa16195c56a01d56ba57681758d3b501d8eec4be4",
+        "evidence-span:sha256:110d79e107e97da06f838032d33ba8afb056b05d68c63ccae73f5beb270e0923",
+        "evidence-span:sha256:068eee25b28d46b03970fad1e2f961ba73c3ab2f8b2397d59bfeecc6e0e4d6cd",
+        "evidence-span:sha256:622b277c268ce59d7d8153d06c91489a750755105104fe5135d4377c0c60791a",
+        "evidence-span:sha256:b17dc09e87c902a5d34c8144f66b3aab6afa336d369dcf57090142b83f6103d5",
+        "evidence-span:sha256:9d411efd1650b8e65b335a55e735606829e210648acb939faf9338b68ab296e3",
+        "evidence-span:sha256:635c8ad4eb36d5cb61ac89fcd9cc1875cc0d1a4a5605e98ff4722fd697333cd0"
+      ]
+    },
+    {
+      "case_id": "case-workflows-synchronization",
+      "class": "sync",
+      "profile": "hybrid",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 833991,
+      "returned_span_ids": [
+        "evidence-span:sha256:db0d5b55c1589fd4cc584f4669d2da0176a5daf03c9e25d7a154d3873cca3f07",
+        "evidence-span:sha256:d5d175c8c809a6f72abeb7b2b862a827ecc2cdb50430f56f3a9acf3b89bd25fc",
+        "evidence-span:sha256:76e39008be974607cc5fa82ae2ecf4dee31a83d2ee8220e613d909ed01d1fe25",
+        "evidence-span:sha256:815fb66dd96356277a7ade3b3395c9e7df9d5e92c1f71ba0e132a1ec72525772",
+        "evidence-span:sha256:fe97684c22227d2a0cdd315ae604cdb9f415ac35c32a840184d2c0a68a7ab768",
+        "evidence-span:sha256:7e844b98f4266c312e46963b99f537755305ebcb660812c2588fd3c7e89ca1c4",
+        "evidence-span:sha256:f43dabb822e29dd7d09944c619ebcd8dbf58eba7e0efc06d048272df668a6b14",
+        "evidence-span:sha256:76b1900d7a23fdbc7c55315de00e5ed465bafbb163b9c548869f1afa3b3e9030",
+        "evidence-span:sha256:164896109f756c123c7ffade49567b3a1e0d62af431f3c063a90eccec2d8406d",
+        "evidence-span:sha256:53d2bfb5181fa727548fed9b403d6b37fe463c6d2e3df72bc679fbb49a899d9e"
+      ]
+    },
+    {
+      "case_id": "case-workflows-synchronization",
+      "class": "sync",
+      "profile": "lexical",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 500000,
+      "ndcg_ppm": 517358,
+      "returned_span_ids": [
+        "evidence-span:sha256:815fb66dd96356277a7ade3b3395c9e7df9d5e92c1f71ba0e132a1ec72525772",
+        "evidence-span:sha256:db0d5b55c1589fd4cc584f4669d2da0176a5daf03c9e25d7a154d3873cca3f07",
+        "evidence-span:sha256:f43dabb822e29dd7d09944c619ebcd8dbf58eba7e0efc06d048272df668a6b14",
+        "evidence-span:sha256:76b1900d7a23fdbc7c55315de00e5ed465bafbb163b9c548869f1afa3b3e9030",
+        "evidence-span:sha256:d5d175c8c809a6f72abeb7b2b862a827ecc2cdb50430f56f3a9acf3b89bd25fc",
+        "evidence-span:sha256:76e39008be974607cc5fa82ae2ecf4dee31a83d2ee8220e613d909ed01d1fe25",
+        "evidence-span:sha256:50c114a87ba3d3890fb0ea684f87189869c7577e28f5f02a5dcca3c2c9727490",
+        "evidence-span:sha256:16e811250dba9145860dc0c92b738924a91410f01132ed6543a1097f115f0eab",
+        "evidence-span:sha256:146fa4932862d6f4fe722d820dcc57de66826f3ff3065a8385875aac360e2c38",
+        "evidence-span:sha256:f7c24f468ca2ba6731a4bfd1254ecaeb95f5bd782703a3e5354558d57539a62e"
+      ]
+    }
+  ],
+  "aggregate_metrics": [
+    {
+      "class": "operation",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 500000,
+      "ndcg_ppm": 475230,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 900000,
+      "threshold_passed": false
+    },
+    {
+      "class": "operation",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 500000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 337351,
+      "min_recall_ppm": 500000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 490000,
+      "threshold_passed": false
+    },
+    {
+      "class": "render",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 833991,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 900000,
+      "threshold_passed": false
+    },
+    {
+      "class": "render",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 200000,
+      "ndcg_ppm": 378825,
+      "min_recall_ppm": 500000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 490000,
+      "threshold_passed": false
+    },
+    {
+      "class": "security",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 1000000,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 1000000,
+      "threshold_passed": true
+    },
+    {
+      "class": "security",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 250000,
+      "ndcg_ppm": 430677,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 630930,
+      "threshold_passed": false
+    },
+    {
+      "class": "sync",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 833991,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 900000,
+      "threshold_passed": false
+    },
+    {
+      "class": "sync",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 500000,
+      "ndcg_ppm": 517358,
+      "min_recall_ppm": 500000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 490000,
+      "threshold_passed": true
+    }
+  ],
+  "resource_limits": {
+    "max_executions": 64,
+    "max_dense_scanned_documents": 52080,
+    "max_returned_results": 640,
+    "max_returned_excerpt_bytes": 5242880,
+    "max_query_signal_bytes": 1048576
+  },
+  "resource_usage": {
+    "executions": 24,
+    "dense_scanned_documents": 23436,
+    "returned_results": 180,
+    "returned_excerpt_bytes": 341404,
+    "query_signal_bytes": 47542
+  },
+  "gates": {
+    "held_out_quality": false,
+    "citation_lineage": true,
+    "acl_isolation": true,
+    "deletion_and_tombstone": true,
+    "freshness_and_time": true,
+    "prompt_injection_inert": true,
+    "resource_bounds": true,
+    "deterministic_replay": true,
+    "rollback_compatibility": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "runtime_id": "retrieval-evaluation-runtime:sha256:66efd6b8674205518dc430ce349a63d1d9444116535eb5e290648c5ec9a16b57",
+  "runtime_payload_sha256": "sha256:66efd6b8674205518dc430ce349a63d1d9444116535eb5e290648c5ec9a16b57",
+  "schema_version": "1.0.0",
+  "runtime_kind": "retrieval_evaluator_runtime",
+  "state": "failed",
+  "evaluator_id": "archeion-retrieval-evaluator",
+  "evaluator_revision": "retrieval-evaluator@1.0.0",
+  "evaluator_executable_sha256": "sha256:8730c8ed9f3f7002d61aee78e01397b6add3ca71e132f411c34e60bfc61d6761",
+  "retrieval_executable_sha256": "sha256:8730c8ed9f3f7002d61aee78e01397b6add3ca71e132f411c34e60bfc61d6761",
+  "suite_id": "retrieval-evaluation-suite:sha256:5b4c14a4239968359cf6c6aba9a61f5531ccdde1127e539e858bfe72e8240cf2",
+  "suite_document_sha256": "sha256:1312beae6e090bb9a601b4ffa37b2eaccb3c965267d48c4c584bf1f30c0a7e57",
+  "lexical_candidate_document_sha256": "sha256:956758b57245f9482fa577e352463708b9395458290bc36c6617740d0054c704",
+  "hybrid_candidate_document_sha256": "sha256:313cd65f9d81da8c13f0fca349cb5ec9713fe0f5387fcfd27f9804b711d74179",
+  "admission_policy_document_sha256": "sha256:12f4cb7f195952330f77b2c19c1991465aca69e81011d4bf00829ac0d03074e6",
+  "metrics_document_sha256": "sha256:c09ce8af27b38ca4df0492ba81a68f55e18981695265148879bbf76b514ce5c7",
+  "metric_algorithm": "macro-recall-mrr-ndcg-fixed-point@1.0.0",
+  "target_mode": "fusion_only",
+  "evaluated_at": "2026-07-17T08:40:16Z"
+}

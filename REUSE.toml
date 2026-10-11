@@ -1,0 +1,94 @@
+# SPDX-FileCopyrightText: 2026 Lusoris <lusoris@proton.me>
+# SPDX-License-Identifier: EUPL-1.2
+#
+# Licence and copyright holder of every tracked file, by path. A later table
+# wins for a file that more than one table matches (REUSE specification 3.3).
+
+version = 1
+
+[[annotations]]
+path = ["**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Lusoris <lusoris@proton.me>"
+SPDX-License-Identifier = "EUPL-1.2"
+
+# Documentation text.
+[[annotations]]
+path = ["README.md", "docs/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Lusoris <lusoris@proton.me>"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+# Third-party source text in the scorer-blind evaluation fixtures. Each file
+# under source-blobs/ is an unchanged upstream file, named by its sha256; each
+# file under materialized/evaluation-evidence/ is an unchanged excerpt of one of
+# them. They keep the licence and the copyright holder of their source, as the
+# `sources` list of each suite-freeze.core.json records them. Revisions v1 and
+# v2 hold the same objects. These tables have to stay after the "**" table.
+
+# Go go1.26.5, src/sync/once.go, golang/go commit c19862e5f8415b4f24b189d065ed739517c548ba.
+[[annotations]]
+path = [
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/source-blobs/sha256/3b/3bc00bab32acd134ddf50c87fdbd1dd70502f224b7684a801a077dfe0a05eb3f",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/ae/ae3c159ed33f9a65724b7143707cb49710ccfd5e345948215de69bd8dc546230",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2009 The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# Go go1.26.5, src/context/context.go, same commit.
+[[annotations]]
+path = [
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/source-blobs/sha256/76/765f99f7cc0710b0117ffa183e432524f429c21496fcbad9b63fb9886fdbaac7",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/0a/0a1fa8c6b9f1cc487545d28a8fce4beaede1949fb2f11377f821642397a34f31",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/27/27d14f41f801b36e19910b8115ec37d4e14531a98b8f393bf6c03901562f9db5",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/34/343ee8704274df5b73cb033a0a17997b671703a39b6303aeb8af5e9e64c02951",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2014 The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# Kubernetes v1.36.2, pkg/apis/core/types.go, kubernetes/kubernetes commit
+# 24e2b02af5543d7910c2bb074c7264df5a8f0467.
+[[annotations]]
+path = [
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/7a/7a8bb011c4617fdcace8df2d614b3723bdf43e9ef32e72e6750042d04265686b",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2014 The Kubernetes Authors"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Kubernetes v1.36.2, staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/types.go, same commit.
+[[annotations]]
+path = [
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/source-blobs/sha256/89/8941618dff976f6c56746095b8ab5d01ea60f91043455bf6f18d4939e5d505aa",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/92/92768931817f6faee7ad3a9e36f47a7b4a0b723dd8a49a206de53ac8922672c9",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/e6/e684e673cf17f6957c129128e4f916d1dd682ca2e08f8ae4d495b5b1eaf9faba",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2015 The Kubernetes Authors"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Cilium v1.19.5, Documentation/network/concepts/ipam/cluster-pool.rst, cilium/cilium commit
+# 20eaccfef029cb046d70219717fb6dbbdf27a59f.
+[[annotations]]
+path = [
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/source-blobs/sha256/f5/f5f3bd8f0a0b9c64d59a44cd73f8e494a7366f2661c5d81bba5dc38e71864e1e",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/30/309a3aa00146d233025acda47eec90f24d679cc76b87a8a4efc3e5cab5d8a43b",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/99/990c264c2ea98cae52d31b25588b7a7e003e2248d8deac77d8670fa46a7e30af",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Authors of Cilium"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Cilium v1.19.5, Documentation/network/kubernetes/kubeproxy-free.rst, same commit.
+[[annotations]]
+path = [
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/2a/2acfb746c8e1547299340cbc2da78282ce6a92bedee15a1b9cb48be0de3ea3c0",
+  "tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v*/materialized/evaluation-evidence/sha256/32/32de08744b60b72159882bc0f1a1f62f71ec9f360272800ca5704531d701c0da",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Authors of Cilium"
+SPDX-License-Identifier = "Apache-2.0"

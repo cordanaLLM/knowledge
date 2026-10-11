@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kb-mcp
+  namespace: ai
+  labels:
+    app.kubernetes.io/name: kb-mcp
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kb-mcp
+  ports:
+    - name: mcp-sse
+      port: 8000
+      targetPort: mcp-sse
+    - name: mcp-http
+      port: 8001
+      targetPort: mcp-http

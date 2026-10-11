@@ -1,0 +1,304 @@
+{
+  "metrics_id": "retrieval-evaluation-metrics:sha256:2e6cda465448d83c3afa6febcf7da8ed2e02df8f61602877c39713b8e6ef8155",
+  "metrics_payload_sha256": "sha256:2e6cda465448d83c3afa6febcf7da8ed2e02df8f61602877c39713b8e6ef8155",
+  "schema_version": "1.0.0",
+  "metrics_kind": "retrieval_recomputed_metrics",
+  "state": "failed",
+  "suite_id": "retrieval-evaluation-suite:sha256:18a78a7ac1d0585c8b0937172e61416318d58cea4c923fee11cfe8fb037663e2",
+  "suite_document_sha256": "sha256:27fb0a99f91abad936c1b540bd181bdcc59c9e552d8885d73f51f22d4916dd24",
+  "lexical_candidate_id": "retrieval-candidate:sha256:5f249f1e45700732f3f8a563999f6f7b1fcd09b88ee084c68d18d793a9cc352f",
+  "lexical_candidate_document_sha256": "sha256:4673fb16a726f4ed5bbed8056cd0d6b82cd98ef0255d760b49d0023224452537",
+  "hybrid_candidate_id": "hybrid-retrieval-candidate:sha256:a5e728b17b37127dd939cc4506622089b96a10a936da45fe482188b11c9597d7",
+  "hybrid_candidate_document_sha256": "sha256:13c6f9ee41da946f701be9c8419ddc2ba94fd9368b48738a9e4e214921d6248f",
+  "admission_policy_id": "retrieval-admission:sha256:15ae0db5c197fb5c170c4e57dc87e2ef5b3a1c5901318192b6719bba1dba4c5d",
+  "admission_policy_document_sha256": "sha256:12f4cb7f195952330f77b2c19c1991465aca69e81011d4bf00829ac0d03074e6",
+  "metric_algorithm": "macro-recall-mrr-ndcg-fixed-point@1.0.0",
+  "metric_scale": 1000000,
+  "cutoff_k": 10,
+  "target_mode": "fusion_only",
+  "case_metrics": [
+    {
+      "case_id": "case-rollouts-analysis-failure",
+      "class": "failure-boundary",
+      "profile": "hybrid",
+      "recall_ppm": 666666,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 625433,
+      "returned_span_ids": [
+        "evidence-span:sha256:97e169b5a6adc18b5b8f47b2d36695f69e037386cadda74776a33bf7cead7c7e",
+        "evidence-span:sha256:b9230aebc28694acb9c37279552e803780c7317886466677773be8ab9abc0e92",
+        "evidence-span:sha256:51c3d6cd72d75ceb200ac3f7437fb0ee3cf8fb7915e5f6627e582a38adcbdf29",
+        "evidence-span:sha256:ade4c07e809c57e31d0625265550f3ee0424bf3a3c42cee3478c53e380b42d6a",
+        "evidence-span:sha256:603d560899e0975aa4f4730de349c96dc1c276f4c1bf511043d6422bed391d8e",
+        "evidence-span:sha256:ac738dba5b8ec7aa2b2a6dc0f02e1a23a5d4859f95e3069c7c04ae17f8071f55",
+        "evidence-span:sha256:a0ce40618c0c0cece412a9904390df9e0652b8188a09f23215130897df52583a",
+        "evidence-span:sha256:a599b9d9d77f9efad04a5a9f299aa7483d64c10c0836f9e6906d6380a037b089",
+        "evidence-span:sha256:8059cdc67dbab78709b2500b598eee3184cac216d3cfca8356252ea1dea84ffd",
+        "evidence-span:sha256:14b70545ebad13bcf97cb5a2bf748ccdc4931ce3dc4372806088cec69a688fab"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-analysis-failure",
+      "class": "failure-boundary",
+      "profile": "lexical",
+      "recall_ppm": 666666,
+      "mrr_ppm": 250000,
+      "ndcg_ppm": 348834,
+      "returned_span_ids": [
+        "evidence-span:sha256:a1be5ee824c6e99b0061d6fa64c80320e6d33f80969928e99bab17b6528e6fa6",
+        "evidence-span:sha256:ba1e9f5c68bf975ab34fb57da05b256e627c750b154b00d77e3a052481681798",
+        "evidence-span:sha256:79ea9bc02c119ad5f3a4ee9f785fb31d0ad421cd052b9c1b05968a7fb088d8c0",
+        "evidence-span:sha256:97e169b5a6adc18b5b8f47b2d36695f69e037386cadda74776a33bf7cead7c7e",
+        "evidence-span:sha256:30189757318e19b1f6abde2728f297a2d7b028e51d78ef7397f6841af517e37e",
+        "evidence-span:sha256:14b70545ebad13bcf97cb5a2bf748ccdc4931ce3dc4372806088cec69a688fab",
+        "evidence-span:sha256:51c3d6cd72d75ceb200ac3f7437fb0ee3cf8fb7915e5f6627e582a38adcbdf29",
+        "evidence-span:sha256:64a2b70d364dc7cbfec31b12918b54d31e5512ba74e0d7fb1cb9d59050e26641",
+        "evidence-span:sha256:ac5d21db9859ad3cebd6e6f3154505af25af5136b26627cf9c940d15882b9f3d",
+        "evidence-span:sha256:bcd6dc219182d07e69ff57294bda632b5424579f92bb2ecebfcbc69123a432f2"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-bluegreen-health",
+      "class": "health",
+      "profile": "hybrid",
+      "recall_ppm": 500000,
+      "mrr_ppm": 333333,
+      "ndcg_ppm": 393577,
+      "returned_span_ids": [
+        "evidence-span:sha256:eacaf6ab9d6ef39defb608487351b1ff520d09421d769bd229c4b84dc9025ec8",
+        "evidence-span:sha256:b819ed25c47ee1a3b69dde5a7951e886be505d4c5d4b1ddf0c9155cab8f510f5",
+        "evidence-span:sha256:67aea01bfdc1c85003600813cdda4dc3e186daab346d992cac9ee62ca82c2d5c",
+        "evidence-span:sha256:a0d25e96b2dbf4616bec9a3401cd8cf8b6d3292685ffc04824947e6c49c0bd8d",
+        "evidence-span:sha256:f202718d638e52aecfe24653a3152bce5bb75d315148e9585accf14b0ce9ae78",
+        "evidence-span:sha256:214db237843dce918343aeb29dfb530877c0ae86f564299aae1105d1b38e4574",
+        "evidence-span:sha256:be07a4d21bfcd009ccb271c99a260dc2a37db32a8b7beb6b4b0c224f75da3f09",
+        "evidence-span:sha256:46418ad50f4bfe6912fad46872c77ea94ecc5a43d585d0a6cf3ac3561c0842df",
+        "evidence-span:sha256:aeffdac3a7bc57acb62e61a1a4ed557cb43657d7d1e02fd24af2d8a9885c43bb",
+        "evidence-span:sha256:deb347ef95e6e3eec91638ca96ca36db78cb186daf4cb02fcd993dbc0a16f004"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-bluegreen-health",
+      "class": "health",
+      "profile": "lexical",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 888707,
+      "returned_span_ids": [
+        "evidence-span:sha256:67aea01bfdc1c85003600813cdda4dc3e186daab346d992cac9ee62ca82c2d5c",
+        "evidence-span:sha256:eacaf6ab9d6ef39defb608487351b1ff520d09421d769bd229c4b84dc9025ec8",
+        "evidence-span:sha256:b819ed25c47ee1a3b69dde5a7951e886be505d4c5d4b1ddf0c9155cab8f510f5",
+        "evidence-span:sha256:f202718d638e52aecfe24653a3152bce5bb75d315148e9585accf14b0ce9ae78",
+        "evidence-span:sha256:a0d25e96b2dbf4616bec9a3401cd8cf8b6d3292685ffc04824947e6c49c0bd8d",
+        "evidence-span:sha256:214db237843dce918343aeb29dfb530877c0ae86f564299aae1105d1b38e4574",
+        "evidence-span:sha256:be07a4d21bfcd009ccb271c99a260dc2a37db32a8b7beb6b4b0c224f75da3f09",
+        "evidence-span:sha256:46418ad50f4bfe6912fad46872c77ea94ecc5a43d585d0a6cf3ac3561c0842df",
+        "evidence-span:sha256:736045cc82a66cf50a72a10725a6e7eb08d89e28c244bf57f47bb75d2d52e6e1",
+        "evidence-span:sha256:cf127ca10a87c97d5f44082a8b9e63361be3ac8f3d1c2851585ce80d46f9686c"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-canary-sync",
+      "class": "sync",
+      "profile": "hybrid",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 500000,
+      "ndcg_ppm": 630930,
+      "returned_span_ids": [
+        "evidence-span:sha256:a6f0bdd67f2f3314969df49db559159f44ecea9afb060bfb07287934ed4d9bde",
+        "evidence-span:sha256:c3f2228875cef14eab312a39632feabc678cfdf28f73ffd0e73e50fb43256516",
+        "evidence-span:sha256:0e2bffd8f74e4d2e41c62d77fd684e485e73f1b341fd074582dcc7ce7ae640eb",
+        "evidence-span:sha256:09af285fa8006333cc5df0cf2d4de50831a9f6e77643779588d66d1e9cb87dd3",
+        "evidence-span:sha256:f004ba6e1c8c6e48663ea619f427ea01e27ee813c3a9bc1882e7afd82dd2ab89",
+        "evidence-span:sha256:148bdf550fe884169459ebbbc95766be73ef4693563e465062651c7eefcdfc18",
+        "evidence-span:sha256:99afbca9b1056400635cbd3ef163ca4313e942546f964f9b0a33415213c529fa",
+        "evidence-span:sha256:f4b18f564ccdbf79776cf9a7b4fc1f55c3032960012172c16111c6ecbfa46e1b",
+        "evidence-span:sha256:7de8b69953cf0bcb49425d9d717f849277b46263772b26c8dec043d93c32998b",
+        "evidence-span:sha256:44a205451ead5108e16ef334f173c2c0340b75cf8b7d3903f7a6efa20679971c"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-canary-sync",
+      "class": "sync",
+      "profile": "lexical",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 142857,
+      "ndcg_ppm": 333333,
+      "returned_span_ids": [
+        "evidence-span:sha256:148bdf550fe884169459ebbbc95766be73ef4693563e465062651c7eefcdfc18",
+        "evidence-span:sha256:a6f0bdd67f2f3314969df49db559159f44ecea9afb060bfb07287934ed4d9bde",
+        "evidence-span:sha256:e5defbd8206bb371348393e941786eb946c6cb87aa1ab2500741b9b061ec2062",
+        "evidence-span:sha256:09af285fa8006333cc5df0cf2d4de50831a9f6e77643779588d66d1e9cb87dd3",
+        "evidence-span:sha256:0e2bffd8f74e4d2e41c62d77fd684e485e73f1b341fd074582dcc7ce7ae640eb",
+        "evidence-span:sha256:7de8b69953cf0bcb49425d9d717f849277b46263772b26c8dec043d93c32998b",
+        "evidence-span:sha256:c3f2228875cef14eab312a39632feabc678cfdf28f73ffd0e73e50fb43256516",
+        "evidence-span:sha256:a9ff848d1cfedf636474c0db02119c5e80f2148ae308dfe6c34b6f46b0148659",
+        "evidence-span:sha256:f4b18f564ccdbf79776cf9a7b4fc1f55c3032960012172c16111c6ecbfa46e1b",
+        "evidence-span:sha256:05342084a1061d8a2bf18be14182e3264ac06b5b2550161725243968dd6e4428"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-command-injection",
+      "class": "security",
+      "profile": "hybrid",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 1000000,
+      "returned_span_ids": [
+        "evidence-span:sha256:812ed4d879db60c80962d4567227342a287f88ffdf6916f087e5da8ca841b7b1",
+        "evidence-span:sha256:5aa479fd2f85ab715bac6085cb8ac6f489cfc70e654ebc3a7d64125a628d9553",
+        "evidence-span:sha256:1aab1b6a25f4c3ad41299831720e6da57000bc0287b589042c6814df761bf806",
+        "evidence-span:sha256:1a73425ad2d4b670129feef73eb80708174a8e456477467ed303a15f34422cbf",
+        "evidence-span:sha256:c3d869000e639d019570fb3a797ce108a020136534b9e160fa783585158186ed",
+        "evidence-span:sha256:603d560899e0975aa4f4730de349c96dc1c276f4c1bf511043d6422bed391d8e",
+        "evidence-span:sha256:f9ce0d927983a27851b47652ec5a3b685139739479aa8fccbc6ce413efd5d3a6",
+        "evidence-span:sha256:da4aa7e1c4e00ebb822cc4279ff7f81fc03fbfc1e888c6065d41c92f7414c606",
+        "evidence-span:sha256:e70290e81d708508ef8605e0cb41afbea09420ca11f0dcb5a5ae33eaee5907ab",
+        "evidence-span:sha256:7dcdfafd41d793526a24b214f1218e6c4d38168db12c10ad92bb76fb264e76d9"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-command-injection",
+      "class": "security",
+      "profile": "lexical",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 1000000,
+      "returned_span_ids": [
+        "evidence-span:sha256:812ed4d879db60c80962d4567227342a287f88ffdf6916f087e5da8ca841b7b1",
+        "evidence-span:sha256:7dcdfafd41d793526a24b214f1218e6c4d38168db12c10ad92bb76fb264e76d9",
+        "evidence-span:sha256:668517e3929cff1745e9c35259f60b973725df2f85863b22213bafd801cf5931",
+        "evidence-span:sha256:c3d869000e639d019570fb3a797ce108a020136534b9e160fa783585158186ed",
+        "evidence-span:sha256:5aa479fd2f85ab715bac6085cb8ac6f489cfc70e654ebc3a7d64125a628d9553",
+        "evidence-span:sha256:30189757318e19b1f6abde2728f297a2d7b028e51d78ef7397f6841af517e37e",
+        "evidence-span:sha256:3e140fbf87efba5512c27504da96a2894eb1079eaacfab2b2d9ffcc79541656d",
+        "evidence-span:sha256:a661697322de970d031b6447236271bbd2ace649ebf14b3f57781b63c1ae08db",
+        "evidence-span:sha256:e21ebdf201ace1733ef7263a2c6c6ea062972be214bedcded8f3367cd859e538",
+        "evidence-span:sha256:a07bf02b7df0affb02909a8011fccb6c5b135656b0c9c4fbbb379ca96c0e943a"
+      ]
+    }
+  ],
+  "aggregate_metrics": [
+    {
+      "class": "failure-boundary",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 666666,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 625433,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 900000,
+      "threshold_passed": false
+    },
+    {
+      "class": "failure-boundary",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 666666,
+      "mrr_ppm": 250000,
+      "ndcg_ppm": 348834,
+      "min_recall_ppm": 666666,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 800000,
+      "threshold_passed": false
+    },
+    {
+      "class": "health",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 500000,
+      "mrr_ppm": 333333,
+      "ndcg_ppm": 393577,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 900000,
+      "threshold_passed": false
+    },
+    {
+      "class": "health",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 888707,
+      "min_recall_ppm": 500000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 490000,
+      "threshold_passed": true
+    },
+    {
+      "class": "security",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 1000000,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 1000000,
+      "threshold_passed": true
+    },
+    {
+      "class": "security",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 1000000,
+      "ndcg_ppm": 1000000,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 630930,
+      "threshold_passed": true
+    },
+    {
+      "class": "sync",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 500000,
+      "ndcg_ppm": 630930,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 1000000,
+      "threshold_passed": false
+    },
+    {
+      "class": "sync",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 142857,
+      "ndcg_ppm": 333333,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 630930,
+      "threshold_passed": false
+    }
+  ],
+  "resource_limits": {
+    "max_executions": 64,
+    "max_dense_scanned_documents": 20380,
+    "max_returned_results": 640,
+    "max_returned_excerpt_bytes": 5242880,
+    "max_query_signal_bytes": 1048576
+  },
+  "resource_usage": {
+    "executions": 24,
+    "dense_scanned_documents": 9171,
+    "returned_results": 180,
+    "returned_excerpt_bytes": 278267,
+    "query_signal_bytes": 47571
+  },
+  "gates": {
+    "held_out_quality": false,
+    "citation_lineage": true,
+    "acl_isolation": true,
+    "deletion_and_tombstone": true,
+    "freshness_and_time": true,
+    "prompt_injection_inert": true,
+    "resource_bounds": true,
+    "deterministic_replay": true,
+    "rollback_compatibility": true
+  }
+}

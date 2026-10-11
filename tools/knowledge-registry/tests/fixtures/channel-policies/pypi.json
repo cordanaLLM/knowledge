@@ -1,0 +1,131 @@
+{
+  "$schema": "https://github.com/cordanaLLM/knowledge/schemas/registry/channel-policy.schema.json",
+  "schema_version": "1.0.0",
+  "record_kind": "channel_policy",
+  "record_id": "policy:channel:pypi:v0-test",
+  "review": {
+    "status": "accepted",
+    "reviewed_by": "operator",
+    "reviewed_at": "2026-08-22",
+    "evidence": [
+      "sample-audit:test-fixture-slice",
+      "https://docs.pypi.org/api/",
+      "source-monorepo-review:acceptance-suite"
+    ]
+  },
+  "scope": {
+    "ecosystem": "pypi",
+    "preconditions": [
+      { "field": "purl", "pattern": "^pkg:pypi/[a-z0-9]([a-z0-9._-]*[a-z0-9])?$" }
+    ]
+  },
+  "tables": {},
+  "channels": [
+    {
+      "channel_type": "package",
+      "disposition": "available",
+      "uri_template": "https://pypi.org/project/{name}/",
+      "publisher": "Python Package Index",
+      "access": "public",
+      "rights": "PyPI Terms of Use",
+      "version_strategy": "per-version",
+      "refresh_policy": "on-version-change",
+      "discovery_method": "generated",
+      "confidence": "medium"
+    },
+    {
+      "channel_type": "api",
+      "disposition": "derived-unverified",
+      "uri_template": "https://pypi.org/pypi/{name}/json",
+      "publisher": "Python Package Index",
+      "access": "public",
+      "gap_reason": "registry JSON API endpoint is grammar-derived and has not been probed",
+      "next_action": "probe-wave"
+    },
+    {
+      "channel_type": "docs",
+      "disposition": "derived-unverified",
+      "uri_template": "https://pypi.org/project/{name}/",
+      "publisher": "Python Package Index",
+      "access": "public",
+      "gap_reason": "project documentation pointer lives in registry metadata; the project page is grammar-derived and unprobed",
+      "next_action": "probe-wave"
+    },
+    {
+      "channel_type": "advisory",
+      "disposition": "derived-unverified",
+      "uri_template": "https://osv.dev/list?ecosystem=PyPI&q={name}",
+      "publisher": "OSV",
+      "access": "public",
+      "gap_reason": "OSV advisory listing is grammar-derived and has not been probed",
+      "next_action": "probe-wave"
+    },
+    {
+      "channel_type": "release",
+      "disposition": "derived-unverified",
+      "uri_template": "https://pypi.org/project/{name}/#history",
+      "publisher": "Python Package Index",
+      "access": "public",
+      "gap_reason": "release history page is grammar-derived and has not been probed",
+      "next_action": "probe-wave"
+    },
+    {
+      "channel_type": "source",
+      "disposition": "unresolved",
+      "gap_reason": "repository URL lives in per-package registry metadata and is not derivable offline",
+      "next_action": "probe-wave"
+    },
+    {
+      "channel_type": "changelog",
+      "disposition": "unresolved",
+      "gap_reason": "changelog location is upstream-specific and not derivable from the registry grammar",
+      "next_action": "probe-wave"
+    },
+    {
+      "channel_type": "provenance",
+      "disposition": "unresolved",
+      "gap_reason": "PEP 740 attestation presence is per-package and requires a registry probe",
+      "next_action": "probe-wave"
+    },
+    {
+      "channel_type": "reference",
+      "disposition": "absent",
+      "gap_reason": "PyPI exposes no registry-level reference channel; API reference belongs to upstream docs"
+    },
+    {
+      "channel_type": "schema",
+      "disposition": "absent",
+      "gap_reason": "PyPI packages expose no schema channel; not applicable to the ecosystem"
+    },
+    {
+      "channel_type": "config",
+      "disposition": "absent",
+      "gap_reason": "PyPI packages expose no configuration reference channel at the registry level"
+    },
+    {
+      "channel_type": "migration",
+      "disposition": "absent",
+      "gap_reason": "migration guides are upstream documentation, not a registry channel"
+    },
+    {
+      "channel_type": "deprecation",
+      "disposition": "absent",
+      "gap_reason": "PyPI yanking is version metadata on the package channel, not a standalone deprecation channel"
+    },
+    {
+      "channel_type": "license",
+      "disposition": "absent",
+      "gap_reason": "license is package metadata carried in the registry record, not a standalone channel"
+    },
+    {
+      "channel_type": "artifact",
+      "disposition": "absent",
+      "gap_reason": "artifact downloads are version-scoped registry files under the package channel"
+    },
+    {
+      "channel_type": "sbom",
+      "disposition": "absent",
+      "gap_reason": "PyPI does not publish SBOMs for packages"
+    }
+  ]
+}

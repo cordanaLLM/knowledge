@@ -1,0 +1,19 @@
+Direct Server Return (DSR)
+**************************
+
+By default, Cilium's eBPF NodePort implementation operates in SNAT mode. That is,
+when node-external traffic arrives and the node determines that the backend for
+the LoadBalancer, NodePort, or services with externalIPs is at a remote node, then the
+node is redirecting the request to the remote backend on its behalf by performing
+SNAT. This does not require any additional MTU changes. The cost is that replies
+from the backend need to make the extra hop back to that node to perform the
+reverse SNAT translation there before returning the packet directly to the external
+client.
+
+This setting can be changed through the ``loadBalancer.mode`` Helm option to
+``dsr`` in order to let Cilium's eBPF NodePort implementation operate in DSR mode.
+In this mode, the backends reply directly to the external client without taking
+the extra hop, meaning, backends reply by using the service IP/port as a source.
+
+Another advantage in DSR mode is that the client's source IP is preserved, so policy
+can match on it at the backend node. In the SNAT mode this is not possible.

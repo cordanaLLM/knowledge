@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_id": "snp:argocd:docs:sync-waves@v3.4.5:fixture",
+  "source_id": "src:argocd:docs@v3.4.5",
+  "canonical_uri": "https://github.com/argoproj/argo-cd/tree/564b94973b284b8de98da7cee6eeade2cb941e46",
+  "component_id": "cmp:github:argoproj/argo-cd",
+  "component_version_id": "ver:github:argoproj/argo-cd@v3.4.5",
+  "resolved_version": "v3.4.5",
+  "source_revision": "564b94973b284b8de98da7cee6eeade2cb941e46",
+  "channel_id": "chn:argocd:source",
+  "channel_type": "source",
+  "rights": {
+    "license_expression": "Apache-2.0",
+    "rights_basis": "upstream-license",
+    "attribution": "Argo Project",
+    "permissions": {
+      "commercial": "true",
+      "eval": "true",
+      "export": "true",
+      "media": "true",
+      "quote": "true",
+      "redistribution": "true",
+      "retrieval": "true",
+      "skill": "true",
+      "training": "true"
+    }
+  },
+  "access_scope": "public",
+  "classification": "public",
+  "security_domain": "public",
+  "language": "en",
+  "fetched_at": "2026-07-16T08:00:00Z",
+  "observed_at": "2026-07-16T08:00:00Z",
+  "mirror_path": "argo-cd/v3.4.5",
+  "provenance": {
+    "origin_kind": "official",
+    "generated": false,
+    "recursive_source": false
+  },
+  "exclusions": []
+}

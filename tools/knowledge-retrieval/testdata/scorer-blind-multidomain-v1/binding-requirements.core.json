@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_kind": "retrieval_multidomain_binding_requirements",
+  "state": "blocked",
+  "execution_state": "blocked_absent_artifacts",
+  "ready": false,
+  "name": "kubernetes-cilium-go-binding-requirements",
+  "revision": "v1",
+  "requirements_frozen_at": "2026-07-17T14:45:40Z",
+  "freeze_id": "retrieval-evaluation-freeze:sha256:a0fd2cb1067e0b92122e3478632831e8822b5b34f63fa841d3bf60aa65d2de1b",
+  "freeze_document_sha256": "sha256:376761716b7b0fb4fec98e36dc8fe4b83838e40bcf4a156e1c8fcb482165bfa4",
+  "authority_mode": "independent_source_authorities",
+  "required_exact_bindings": [
+    "admission_policy_document_sha256",
+    "admission_policy_id",
+    "dense_artifact_document_sha256",
+    "dense_artifact_id",
+    "evidence_manifest_document_sha256",
+    "evidence_manifest_id",
+    "fusion_profile_document_sha256",
+    "fusion_profile_id",
+    "hybrid_baseline_candidate_document_sha256",
+    "hybrid_baseline_candidate_id",
+    "hybrid_challenger_candidate_document_sha256",
+    "hybrid_challenger_candidate_id",
+    "lexical_candidate_document_sha256",
+    "lexical_candidate_id",
+    "lexical_index_document_sha256",
+    "lexical_index_id",
+    "query_signal_artifacts",
+    "scorer_artifact_sha256",
+    "snapshot_manifest_document_sha256",
+    "snapshot_manifest_id"
+  ],
+  "source_authorities": [
+    {
+      "authority_id": "retrieval-source-authority:cilium:v1.19.5",
+      "component_id": "cilium",
+      "component_version": "v1.19.5",
+      "repository_uri": "https://github.com/cilium/cilium.git",
+      "source_commit_sha": "20eaccfef029cb046d70219717fb6dbbdf27a59f",
+      "license_expression": "Apache-2.0",
+      "source_keys": [
+        "cilium-cluster-pool",
+        "cilium-kubeproxy-free"
+      ],
+      "admission_policy_scope_id": "retrieval-admission-scope:cilium:v1.19.5",
+      "policy_evaluated_at_not_before": "2026-07-17T14:45:40Z",
+      "policy_must_remain_fresh_strictly_after": "2026-07-17T14:45:40Z"
+    },
+    {
+      "authority_id": "retrieval-source-authority:go:go1.26.5",
+      "component_id": "go",
+      "component_version": "go1.26.5",
+      "repository_uri": "https://github.com/golang/go.git",
+      "source_commit_sha": "c19862e5f8415b4f24b189d065ed739517c548ba",
+      "license_expression": "BSD-3-Clause",
+      "source_keys": [
+        "go-context",
+        "go-sync-once"
+      ],
+      "admission_policy_scope_id": "retrieval-admission-scope:go:go1.26.5",
+      "policy_evaluated_at_not_before": "2026-07-17T14:45:40Z",
+      "policy_must_remain_fresh_strictly_after": "2026-07-17T14:45:40Z"
+    },
+    {
+      "authority_id": "retrieval-source-authority:kubernetes:v1.36.2",
+      "component_id": "kubernetes",
+      "component_version": "v1.36.2",
+      "repository_uri": "https://github.com/kubernetes/kubernetes.git",
+      "source_commit_sha": "24e2b02af5543d7910c2bb074c7264df5a8f0467",
+      "license_expression": "Apache-2.0",
+      "source_keys": [
+        "kubernetes-core-types",
+        "kubernetes-meta-types"
+      ],
+      "admission_policy_scope_id": "retrieval-admission-scope:kubernetes:v1.36.2",
+      "policy_evaluated_at_not_before": "2026-07-17T14:45:40Z",
+      "policy_must_remain_fresh_strictly_after": "2026-07-17T14:45:40Z"
+    }
+  ],
+  "required_shared_lineage_authorities": [
+    "retrieval-source-authority:cilium:v1.19.5",
+    "retrieval-source-authority:go:go1.26.5",
+    "retrieval-source-authority:kubernetes:v1.36.2"
+  ],
+  "authority_rules": {
+    "singular_source_collapse_forbidden": true,
+    "aliased_admission_policies_forbidden": true,
+    "mixed_lineage_forbidden": true,
+    "backdated_admission_forbidden": true,
+    "expired_admission_forbidden": true,
+    "workflows_lane_authority_reuse_forbidden": true,
+    "unaccepted_scorer_authority_forbidden": true,
+    "admission_validity_relation": "requirements_frozen_at\u003c=policy_evaluated_at\u003c=evaluation_time\u003cpolicy_fresh_until"
+  },
+  "capabilities": {
+    "artifact_bytes_verified": false,
+    "retrieval_authorized": false,
+    "evaluation_authorized": false,
+    "signing_authorized": false,
+    "generation_authorized": false,
+    "pointer_write_authorized": false
+  }
+}

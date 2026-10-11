@@ -1,0 +1,304 @@
+{
+  "metrics_id": "retrieval-evaluation-metrics:sha256:c5faca7108938a61c22906abbc278ca16c8ba30d5a56355945d810f955b148fd",
+  "metrics_payload_sha256": "sha256:c5faca7108938a61c22906abbc278ca16c8ba30d5a56355945d810f955b148fd",
+  "schema_version": "1.0.0",
+  "metrics_kind": "retrieval_recomputed_metrics",
+  "state": "failed",
+  "suite_id": "retrieval-evaluation-suite:sha256:5b4c14a4239968359cf6c6aba9a61f5531ccdde1127e539e858bfe72e8240cf2",
+  "suite_document_sha256": "sha256:1312beae6e090bb9a601b4ffa37b2eaccb3c965267d48c4c584bf1f30c0a7e57",
+  "lexical_candidate_id": "retrieval-candidate:sha256:fcc3d497bf33a8afe968933ca9e4c3ed2783febefc7d8a973c2cd87e9fe97103",
+  "lexical_candidate_document_sha256": "sha256:956758b57245f9482fa577e352463708b9395458290bc36c6617740d0054c704",
+  "hybrid_candidate_id": "hybrid-retrieval-candidate:sha256:c57fe2242a2fad66eaa901f88da4da589d151685af2587f3d642d96236e25469",
+  "hybrid_candidate_document_sha256": "sha256:313cd65f9d81da8c13f0fca349cb5ec9713fe0f5387fcfd27f9804b711d74179",
+  "admission_policy_id": "retrieval-admission:sha256:15ae0db5c197fb5c170c4e57dc87e2ef5b3a1c5901318192b6719bba1dba4c5d",
+  "admission_policy_document_sha256": "sha256:12f4cb7f195952330f77b2c19c1991465aca69e81011d4bf00829ac0d03074e6",
+  "metric_algorithm": "macro-recall-mrr-ndcg-fixed-point@1.0.0",
+  "metric_scale": 1000000,
+  "cutoff_k": 10,
+  "target_mode": "fusion_only",
+  "case_metrics": [
+    {
+      "case_id": "case-rollouts-analysis-failure",
+      "class": "failure-boundary",
+      "profile": "hybrid",
+      "recall_ppm": 666666,
+      "mrr_ppm": 333333,
+      "ndcg_ppm": 356810,
+      "returned_span_ids": [
+        "evidence-span:sha256:233c22cfb1670910d6a39f34eb8f2da0e1487b19a085b07b74e2ebb7e2ec2e2c",
+        "evidence-span:sha256:ade4c07e809c57e31d0625265550f3ee0424bf3a3c42cee3478c53e380b42d6a",
+        "evidence-span:sha256:97e169b5a6adc18b5b8f47b2d36695f69e037386cadda74776a33bf7cead7c7e",
+        "evidence-span:sha256:c3d869000e639d019570fb3a797ce108a020136534b9e160fa783585158186ed",
+        "evidence-span:sha256:15ec611881e1fef3639beee533aba17f3d9f86c10b1f53cbff847fcc5d4d46d1",
+        "evidence-span:sha256:aeffdac3a7bc57acb62e61a1a4ed557cb43657d7d1e02fd24af2d8a9885c43bb",
+        "evidence-span:sha256:5af0c28188090bab6aed83e91ad45829ee2c54e1afa816d52a0ea052d162ea12",
+        "evidence-span:sha256:51c3d6cd72d75ceb200ac3f7437fb0ee3cf8fb7915e5f6627e582a38adcbdf29",
+        "evidence-span:sha256:a07bf02b7df0affb02909a8011fccb6c5b135656b0c9c4fbbb379ca96c0e943a",
+        "evidence-span:sha256:603d560899e0975aa4f4730de349c96dc1c276f4c1bf511043d6422bed391d8e"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-analysis-failure",
+      "class": "failure-boundary",
+      "profile": "lexical",
+      "recall_ppm": 0,
+      "mrr_ppm": 0,
+      "ndcg_ppm": 0,
+      "returned_span_ids": [
+        "evidence-span:sha256:03264b6ca33fcdab1aa009111d402ca64a105e6440bc13c378f651e44f9b3d03",
+        "evidence-span:sha256:c3d869000e639d019570fb3a797ce108a020136534b9e160fa783585158186ed",
+        "evidence-span:sha256:a6f0bdd67f2f3314969df49db559159f44ecea9afb060bfb07287934ed4d9bde",
+        "evidence-span:sha256:f6014ed552824dbe1eab6e398b22194ae456a9d3e333a98b9755a97cdb8ad426",
+        "evidence-span:sha256:233c22cfb1670910d6a39f34eb8f2da0e1487b19a085b07b74e2ebb7e2ec2e2c",
+        "evidence-span:sha256:ee54b30de4b94bf4ebcd5a1dfbe50ecd77481c145e1f204505df644fde4986ee",
+        "evidence-span:sha256:0e2bffd8f74e4d2e41c62d77fd684e485e73f1b341fd074582dcc7ce7ae640eb",
+        "evidence-span:sha256:79ea9bc02c119ad5f3a4ee9f785fb31d0ad421cd052b9c1b05968a7fb088d8c0",
+        "evidence-span:sha256:4f7c584793dc104145d39c8a8607fa02d3baf7f7f370d69fd2fdbf2b3def65cc",
+        "evidence-span:sha256:b225eb7ecbd453c2a622523d197b90b6cd704e4a7cd3b9a9cf34bbc6c4d81eee"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-bluegreen-health",
+      "class": "health",
+      "profile": "hybrid",
+      "recall_ppm": 500000,
+      "mrr_ppm": 500000,
+      "ndcg_ppm": 496639,
+      "returned_span_ids": [
+        "evidence-span:sha256:214db237843dce918343aeb29dfb530877c0ae86f564299aae1105d1b38e4574",
+        "evidence-span:sha256:67aea01bfdc1c85003600813cdda4dc3e186daab346d992cac9ee62ca82c2d5c",
+        "evidence-span:sha256:a0d25e96b2dbf4616bec9a3401cd8cf8b6d3292685ffc04824947e6c49c0bd8d",
+        "evidence-span:sha256:eacaf6ab9d6ef39defb608487351b1ff520d09421d769bd229c4b84dc9025ec8",
+        "evidence-span:sha256:be07a4d21bfcd009ccb271c99a260dc2a37db32a8b7beb6b4b0c224f75da3f09",
+        "evidence-span:sha256:b819ed25c47ee1a3b69dde5a7951e886be505d4c5d4b1ddf0c9155cab8f510f5",
+        "evidence-span:sha256:54ac47cc4684cd0207431784d84934f81650d8b882b3ec05d44b5cefa2842657",
+        "evidence-span:sha256:a11bff907beff972c10b9c5f5e9c45f384d86d40783455ff20186fe4d21d9c1c",
+        "evidence-span:sha256:5c9049eb7eea087cec09c7d51340cc57dac9bc8767aa13c7f64fb6bbe9d5984f",
+        "evidence-span:sha256:4675bacd512c18379b58994bb3c164e6780d5cffc8948d5504c7b55987ba73c7"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-bluegreen-health",
+      "class": "health",
+      "profile": "lexical",
+      "recall_ppm": 500000,
+      "mrr_ppm": 125000,
+      "ndcg_ppm": 248319,
+      "returned_span_ids": [
+        "evidence-span:sha256:c3d869000e639d019570fb3a797ce108a020136534b9e160fa783585158186ed",
+        "evidence-span:sha256:14b70545ebad13bcf97cb5a2bf748ccdc4931ce3dc4372806088cec69a688fab",
+        "evidence-span:sha256:214db237843dce918343aeb29dfb530877c0ae86f564299aae1105d1b38e4574",
+        "evidence-span:sha256:5c9049eb7eea087cec09c7d51340cc57dac9bc8767aa13c7f64fb6bbe9d5984f",
+        "evidence-span:sha256:4675bacd512c18379b58994bb3c164e6780d5cffc8948d5504c7b55987ba73c7",
+        "evidence-span:sha256:ee872c06a2fe6bb59fa7e9f53161b2c43657ee0f501b287f8afe0fc01d8eb223",
+        "evidence-span:sha256:51c3d6cd72d75ceb200ac3f7437fb0ee3cf8fb7915e5f6627e582a38adcbdf29",
+        "evidence-span:sha256:67aea01bfdc1c85003600813cdda4dc3e186daab346d992cac9ee62ca82c2d5c",
+        "evidence-span:sha256:b99646123726f9f08e8d0034bd21ad228260a169fed6c50265a82811926b7f10",
+        "evidence-span:sha256:2d706734347a85f6eb17bd5156fa42546febcfd9fc7fb614358f8f2ecee026db"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-canary-sync",
+      "class": "sync",
+      "profile": "hybrid",
+      "recall_ppm": 1000000,
+      "mrr_ppm": 333333,
+      "ndcg_ppm": 500000,
+      "returned_span_ids": [
+        "evidence-span:sha256:a6f0bdd67f2f3314969df49db559159f44ecea9afb060bfb07287934ed4d9bde",
+        "evidence-span:sha256:15ec611881e1fef3639beee533aba17f3d9f86c10b1f53cbff847fcc5d4d46d1",
+        "evidence-span:sha256:c3f2228875cef14eab312a39632feabc678cfdf28f73ffd0e73e50fb43256516",
+        "evidence-span:sha256:0e2bffd8f74e4d2e41c62d77fd684e485e73f1b341fd074582dcc7ce7ae640eb",
+        "evidence-span:sha256:99afbca9b1056400635cbd3ef163ca4313e942546f964f9b0a33415213c529fa",
+        "evidence-span:sha256:f004ba6e1c8c6e48663ea619f427ea01e27ee813c3a9bc1882e7afd82dd2ab89",
+        "evidence-span:sha256:233c22cfb1670910d6a39f34eb8f2da0e1487b19a085b07b74e2ebb7e2ec2e2c",
+        "evidence-span:sha256:9b4862bae9f3d4277de587665715d235e6a0a06dc262aa5ee464825f59a6c209",
+        "evidence-span:sha256:34df61ef23b6cf9d221c0adc8cb703f7a8175999f4f58231bf0ceaa8f141a8a9",
+        "evidence-span:sha256:7f43be347e06f47e556cf5fbbdc0472704e23393c62a95aba038b3516e21f39d"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-canary-sync",
+      "class": "sync",
+      "profile": "lexical",
+      "recall_ppm": 0,
+      "mrr_ppm": 0,
+      "ndcg_ppm": 0,
+      "returned_span_ids": [
+        "evidence-span:sha256:c3d869000e639d019570fb3a797ce108a020136534b9e160fa783585158186ed",
+        "evidence-span:sha256:a6f0bdd67f2f3314969df49db559159f44ecea9afb060bfb07287934ed4d9bde",
+        "evidence-span:sha256:0e2bffd8f74e4d2e41c62d77fd684e485e73f1b341fd074582dcc7ce7ae640eb",
+        "evidence-span:sha256:03264b6ca33fcdab1aa009111d402ca64a105e6440bc13c378f651e44f9b3d03",
+        "evidence-span:sha256:d16d172495d0cadef7eda835420ad0c4f984427ba3cad7ad55cb99e9f6f3b25c",
+        "evidence-span:sha256:15ec611881e1fef3639beee533aba17f3d9f86c10b1f53cbff847fcc5d4d46d1",
+        "evidence-span:sha256:233c22cfb1670910d6a39f34eb8f2da0e1487b19a085b07b74e2ebb7e2ec2e2c",
+        "evidence-span:sha256:9b4862bae9f3d4277de587665715d235e6a0a06dc262aa5ee464825f59a6c209",
+        "evidence-span:sha256:f6014ed552824dbe1eab6e398b22194ae456a9d3e333a98b9755a97cdb8ad426",
+        "evidence-span:sha256:ee54b30de4b94bf4ebcd5a1dfbe50ecd77481c145e1f204505df644fde4986ee"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-command-injection",
+      "class": "security",
+      "profile": "hybrid",
+      "recall_ppm": 0,
+      "mrr_ppm": 0,
+      "ndcg_ppm": 0,
+      "returned_span_ids": [
+        "evidence-span:sha256:1aab1b6a25f4c3ad41299831720e6da57000bc0287b589042c6814df761bf806",
+        "evidence-span:sha256:5aa479fd2f85ab715bac6085cb8ac6f489cfc70e654ebc3a7d64125a628d9553",
+        "evidence-span:sha256:49a1d6d1ca3834040bf81a1749b04e9a35ede2f007617f904600462fe3f11362",
+        "evidence-span:sha256:c3d869000e639d019570fb3a797ce108a020136534b9e160fa783585158186ed",
+        "evidence-span:sha256:aeffdac3a7bc57acb62e61a1a4ed557cb43657d7d1e02fd24af2d8a9885c43bb",
+        "evidence-span:sha256:1a73425ad2d4b670129feef73eb80708174a8e456477467ed303a15f34422cbf",
+        "evidence-span:sha256:05b0447d1885c2f1f67a89a54776cd31c98046bdc57497144e2e6f06d69a458a",
+        "evidence-span:sha256:7413f544827448a71a699947a3282db26b7b7f54e65a4892b8da906da31b59b5",
+        "evidence-span:sha256:e70290e81d708508ef8605e0cb41afbea09420ca11f0dcb5a5ae33eaee5907ab",
+        "evidence-span:sha256:f50d4c25a73c360cc526ceb4d4385fafbdc372a1904196e5b14f726066223a7f"
+      ]
+    },
+    {
+      "case_id": "case-rollouts-command-injection",
+      "class": "security",
+      "profile": "lexical",
+      "recall_ppm": 0,
+      "mrr_ppm": 0,
+      "ndcg_ppm": 0,
+      "returned_span_ids": [
+        "evidence-span:sha256:c3d869000e639d019570fb3a797ce108a020136534b9e160fa783585158186ed",
+        "evidence-span:sha256:03264b6ca33fcdab1aa009111d402ca64a105e6440bc13c378f651e44f9b3d03",
+        "evidence-span:sha256:f6014ed552824dbe1eab6e398b22194ae456a9d3e333a98b9755a97cdb8ad426",
+        "evidence-span:sha256:d16d172495d0cadef7eda835420ad0c4f984427ba3cad7ad55cb99e9f6f3b25c",
+        "evidence-span:sha256:3e140fbf87efba5512c27504da96a2894eb1079eaacfab2b2d9ffcc79541656d",
+        "evidence-span:sha256:deb347ef95e6e3eec91638ca96ca36db78cb186daf4cb02fcd993dbc0a16f004",
+        "evidence-span:sha256:d8df35c8b093918d5b443136064267e60a7625bce3b340ac6d461337f549a73e",
+        "evidence-span:sha256:aeffdac3a7bc57acb62e61a1a4ed557cb43657d7d1e02fd24af2d8a9885c43bb",
+        "evidence-span:sha256:1aab1b6a25f4c3ad41299831720e6da57000bc0287b589042c6814df761bf806",
+        "evidence-span:sha256:b225eb7ecbd453c2a622523d197b90b6cd704e4a7cd3b9a9cf34bbc6c4d81eee"
+      ]
+    }
+  ],
+  "aggregate_metrics": [
+    {
+      "class": "failure-boundary",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 666666,
+      "mrr_ppm": 333333,
+      "ndcg_ppm": 356810,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 900000,
+      "threshold_passed": false
+    },
+    {
+      "class": "failure-boundary",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 0,
+      "mrr_ppm": 0,
+      "ndcg_ppm": 0,
+      "min_recall_ppm": 666666,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 800000,
+      "threshold_passed": false
+    },
+    {
+      "class": "health",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 500000,
+      "mrr_ppm": 500000,
+      "ndcg_ppm": 496639,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 900000,
+      "threshold_passed": false
+    },
+    {
+      "class": "health",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 500000,
+      "mrr_ppm": 125000,
+      "ndcg_ppm": 248319,
+      "min_recall_ppm": 500000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 490000,
+      "threshold_passed": false
+    },
+    {
+      "class": "security",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 0,
+      "mrr_ppm": 0,
+      "ndcg_ppm": 0,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 1000000,
+      "threshold_passed": false
+    },
+    {
+      "class": "security",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 0,
+      "mrr_ppm": 0,
+      "ndcg_ppm": 0,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 630930,
+      "threshold_passed": false
+    },
+    {
+      "class": "sync",
+      "profile": "hybrid",
+      "query_count": 1,
+      "recall_ppm": 1000000,
+      "mrr_ppm": 333333,
+      "ndcg_ppm": 500000,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 1000000,
+      "min_ndcg_ppm": 1000000,
+      "threshold_passed": false
+    },
+    {
+      "class": "sync",
+      "profile": "lexical",
+      "query_count": 1,
+      "recall_ppm": 0,
+      "mrr_ppm": 0,
+      "ndcg_ppm": 0,
+      "min_recall_ppm": 1000000,
+      "min_mrr_ppm": 500000,
+      "min_ndcg_ppm": 630930,
+      "threshold_passed": false
+    }
+  ],
+  "resource_limits": {
+    "max_executions": 64,
+    "max_dense_scanned_documents": 20380,
+    "max_returned_results": 640,
+    "max_returned_excerpt_bytes": 5242880,
+    "max_query_signal_bytes": 1048576
+  },
+  "resource_usage": {
+    "executions": 24,
+    "dense_scanned_documents": 9171,
+    "returned_results": 180,
+    "returned_excerpt_bytes": 485124,
+    "query_signal_bytes": 47571
+  },
+  "gates": {
+    "held_out_quality": false,
+    "citation_lineage": true,
+    "acl_isolation": true,
+    "deletion_and_tombstone": true,
+    "freshness_and_time": true,
+    "prompt_injection_inert": false,
+    "resource_bounds": true,
+    "deterministic_replay": true,
+    "rollback_compatibility": true
+  }
+}

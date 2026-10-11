@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "authority_boundary": {
+    "authoritative": false,
+    "compile_eligible": false,
+    "production_mutation": false,
+    "promote_eligible": false,
+    "retrieval_release": false,
+    "review_state": "unreviewed",
+    "source_admission": false
+  },
+  "base_manifest_id": null,
+  "bounds": {
+    "components": 100000,
+    "dependency_edges": 400000,
+    "discovery_file_bytes": 8388608,
+    "discovery_files": 10000,
+    "discovery_total_bytes": 134217728,
+    "gaps": 400000,
+    "json_depth": 128,
+    "json_input_bytes": 536870912,
+    "json_nodes": 10000000,
+    "occurrences": 400000,
+    "serialized_output_bytes": 536870912,
+    "sources": 100000,
+    "tracked_files": 20000,
+    "versions": 200000
+  },
+  "completeness": {
+    "all_axes_complete": true,
+    "channel_review": {
+      "accepted_slots": 0,
+      "required_slots": 0,
+      "state": "complete"
+    },
+    "closure": {
+      "blocking_gap_ids": [],
+      "state": "complete"
+    },
+    "enumeration": {
+      "state": "complete"
+    },
+    "identity": {
+      "blocking_gap_ids": [],
+      "state": "complete"
+    },
+    "input": {
+      "blocking_input_ids": [],
+      "input_count": 0,
+      "state": "complete"
+    },
+    "snapshots": {
+      "accepted_available_channels": 0,
+      "immutable_verified_channels": 0,
+      "missing_channel_ids": [],
+      "state": "complete"
+    }
+  },
+  "components": [
+    {
+      "component_id": "cmp-mcp01-root",
+      "ecosystem": "git",
+      "kind": "application",
+      "lifecycles": [
+        "deployed"
+      ],
+      "name": "mcp01-root",
+      "namespace": "example",
+      "official_channel_required": false,
+      "official_channels": [],
+      "purl": "pkg:github/example/mcp01-root"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-a",
+      "ecosystem": "git",
+      "kind": "application",
+      "lifecycles": [
+        "deployed"
+      ],
+      "name": "mcp01-dep-a",
+      "namespace": "example",
+      "official_channel_required": false,
+      "official_channels": [],
+      "purl": "pkg:github/example/mcp01-dep-a"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-b",
+      "ecosystem": "git",
+      "kind": "application",
+      "lifecycles": [
+        "deployed"
+      ],
+      "name": "mcp01-dep-b",
+      "namespace": "example",
+      "official_channel_required": false,
+      "official_channels": [],
+      "purl": "pkg:github/example/mcp01-dep-b"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-c",
+      "ecosystem": "git",
+      "kind": "application",
+      "lifecycles": [
+        "deployed"
+      ],
+      "name": "mcp01-dep-c",
+      "namespace": "example",
+      "official_channel_required": false,
+      "official_channels": [],
+      "purl": "pkg:github/example/mcp01-dep-c"
+    }
+  ],
+  "counts": {
+    "components": 4,
+    "dependency_edges": 3,
+    "gaps": 0,
+    "occurrences": 4,
+    "sources": 1,
+    "versions": 4
+  },
+  "dependency_edges": [
+    {
+      "edge_id": "edge-mcp01-root-dep-a",
+      "from_component_version_id": "ver-mcp01-root",
+      "optional": false,
+      "relationship": "depends_on",
+      "resolver": "static",
+      "scope": "runtime",
+      "source_occurrence_id": "occ-mcp01-dep-a",
+      "to_component_version_id": "ver-mcp01-dep-a"
+    },
+    {
+      "edge_id": "edge-mcp01-root-dep-b",
+      "from_component_version_id": "ver-mcp01-root",
+      "optional": false,
+      "relationship": "depends_on",
+      "resolver": "static",
+      "scope": "runtime",
+      "source_occurrence_id": "occ-mcp01-dep-b",
+      "to_component_version_id": "ver-mcp01-dep-b"
+    },
+    {
+      "edge_id": "edge-mcp01-root-dep-c",
+      "from_component_version_id": "ver-mcp01-root",
+      "optional": false,
+      "relationship": "depends_on",
+      "resolver": "static",
+      "scope": "runtime",
+      "source_occurrence_id": "occ-mcp01-dep-c",
+      "to_component_version_id": "ver-mcp01-dep-c"
+    }
+  ],
+  "gaps": [],
+  "generation_state": "candidate",
+  "generator": {
+    "name": "mcp01-acceptance-fixture",
+    "ruleset_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "schema_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "source_ref": "tools/knowledge-mcp/mcp01_fixture_gen_test.go",
+    "version": "1"
+  },
+  "input_set": {
+    "entries": [],
+    "required_source_classes": []
+  },
+  "integrity": {
+    "canonicalization": "archeion-canonical-json-v1",
+    "deterministic_order": true,
+    "manifest_hash": "sha256:87dc7236bc68aad981c27893e49051c6aa29f3d932521edd3b350ace921a6d5e"
+  },
+  "manifest_id": "mft-87dc7236bc68aad981c27893e49051c6aa29f3d932521edd3b350ace921a6d5e",
+  "manifest_version": 2,
+  "observation": {
+    "observed_at": "2026-08-22T00:00:01Z",
+    "source_valid_at": "2026-08-22T00:00:00Z",
+    "source_valid_time_basis": "git-commit-committer-time"
+  },
+  "occurrences": [
+    {
+      "component_id": "cmp-mcp01-root",
+      "component_version_id": "ver-mcp01-root",
+      "dependency_scope": "runtime",
+      "directness": "direct",
+      "evidence_locator": "docs/mcp01/README.md:1",
+      "lifecycle": "deployed",
+      "occurrence_id": "occ-mcp01-root",
+      "optional": false,
+      "raw_value": "v1.0.0",
+      "role": "application",
+      "source_id": "src-mcp01"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-a",
+      "component_version_id": "ver-mcp01-dep-a",
+      "dependency_scope": "runtime",
+      "directness": "direct",
+      "evidence_locator": "docs/mcp01/README.md:1",
+      "lifecycle": "deployed",
+      "occurrence_id": "occ-mcp01-dep-a",
+      "optional": false,
+      "raw_value": "v1.0.0",
+      "role": "application",
+      "source_id": "src-mcp01"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-b",
+      "component_version_id": "ver-mcp01-dep-b",
+      "dependency_scope": "runtime",
+      "directness": "direct",
+      "evidence_locator": "docs/mcp01/README.md:1",
+      "lifecycle": "deployed",
+      "occurrence_id": "occ-mcp01-dep-b",
+      "optional": false,
+      "raw_value": "v1.0.0",
+      "role": "application",
+      "source_id": "src-mcp01"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-c",
+      "component_version_id": "ver-mcp01-dep-c",
+      "dependency_scope": "runtime",
+      "directness": "direct",
+      "evidence_locator": "docs/mcp01/README.md:1",
+      "lifecycle": "deployed",
+      "occurrence_id": "occ-mcp01-dep-c",
+      "optional": false,
+      "raw_value": "v1.0.0",
+      "role": "application",
+      "source_id": "src-mcp01"
+    }
+  ],
+  "reconciliation": {
+    "added": [],
+    "changed": [],
+    "complete_mark": true,
+    "missing": [],
+    "previous_manifest_id": null,
+    "removal_allowed": false,
+    "removed": []
+  },
+  "record_kind": "generated_discovery_manifest",
+  "schema_version": "2.0.0",
+  "sources": [
+    {
+      "content_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "evidence_uri": "docs/mcp01/README.md",
+      "source_id": "src-mcp01",
+      "source_type": "repository-file"
+    }
+  ],
+  "versions": [
+    {
+      "component_id": "cmp-mcp01-root",
+      "component_version_id": "ver-mcp01-root",
+      "evidence": [
+        "docs/mcp01/README.md"
+      ],
+      "resolution_state": "resolved",
+      "resolved_version": "v1.0.0"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-a",
+      "component_version_id": "ver-mcp01-dep-a",
+      "evidence": [
+        "docs/mcp01/README.md"
+      ],
+      "resolution_state": "resolved",
+      "resolved_version": "v1.0.0"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-b",
+      "component_version_id": "ver-mcp01-dep-b",
+      "evidence": [
+        "docs/mcp01/README.md"
+      ],
+      "resolution_state": "resolved",
+      "resolved_version": "v1.0.0"
+    },
+    {
+      "component_id": "cmp-mcp01-dep-c",
+      "component_version_id": "ver-mcp01-dep-c",
+      "evidence": [
+        "docs/mcp01/README.md"
+      ],
+      "resolution_state": "resolved",
+      "resolved_version": "v1.0.0"
+    }
+  ]
+}

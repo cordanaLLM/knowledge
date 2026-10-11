@@ -1,0 +1,10 @@
+# jsonschema 4.26.0 requires attrs>=22.2.0; pin the reviewed-import validator closure.
+attrs==26.1.0
+# The reviewed-record importer asserts this exact Draft 2020-12 engine version.
+jsonschema==4.26.0
+# jsonschema 4.26.0 requires jsonschema-specifications>=2023.03.6.
+jsonschema-specifications==2025.9.1
+# jsonschema 4.26.0 requires referencing>=0.28.4.
+referencing==0.37.0
+# referencing 0.37.0 requires rpds-py>=0.7.0.
+rpds-py==2026.6.3

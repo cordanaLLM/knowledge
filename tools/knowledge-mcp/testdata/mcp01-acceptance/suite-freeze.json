@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0.0",
+  "record_kind": "mcp01_acceptance_suite_freeze",
+  "suite_id": "p1-mcp-01-broker-acceptance",
+  "revision": "v1",
+  "frozen_at": "2026-08-22T00:00:00Z",
+  "issue": "source-monorepo-review:acceptance-suite",
+  "broker_contract": {
+    "server_name": "archeion-knowledge-mcp",
+    "server_version": "0.6.2",
+    "protocol_version": "2025-11-25",
+    "tool_count": 13
+  },
+  "cases": [
+    {
+      "case_id": "success",
+      "case_class": "success",
+      "execution_surface": [
+        "hermetic",
+        "cluster"
+      ],
+      "proves": "A signed-current lane serves typed ok with full pointer/receipt/generation/quality/evaluation lineage, the exact frozen span citation with byte/line coordinates and trust envelope, broker-supplied UTC time, and the pinned executable/policy identity."
+    },
+    {
+      "case_id": "stale",
+      "case_class": "stale",
+      "execution_surface": [
+        "hermetic"
+      ],
+      "proves": "A stale signed generation stays a typed stale error with retained lineage and zero evidence; it is never converted into an empty success."
+    },
+    {
+      "case_id": "one_lane_timeout",
+      "case_class": "one_lane_timeout",
+      "execution_surface": [
+        "hermetic"
+      ],
+      "proves": "A wedged lane is reaped at the broker's fixed non-caller-selectable 20s deadline and surfaces as a visible degraded lane in a typed federated_partial result; the healthy lane's evidence is preserved and the failure is never hidden as an empty success."
+    },
+    {
+      "case_id": "tamper",
+      "case_class": "tamper",
+      "execution_surface": [
+        "hermetic"
+      ],
+      "proves": "One mutated byte fails closed at every artifact boundary: the suite's own fixture pins reject it, a tampered pinned lane executable yields backend_unavailable with no evidence, a tampered pinned federation catalog yields federation_catalog_invalid with lanes and results withheld, and restoring the frozen bytes recovers service."
+    },
+    {
+      "case_id": "conflict",
+      "case_class": "conflict",
+      "execution_surface": [
+        "hermetic"
+      ],
+      "proves": "One evidence-span ID returned with conflicting citation bytes fails the whole federated request closed as federation_span_conflict with zero evidence, deterministically across repeated calls."
+    },
+    {
+      "case_id": "acl",
+      "case_class": "acl",
+      "execution_surface": [
+        "hermetic",
+        "cluster"
+      ],
+      "proves": "Authorization applies before metadata disclosure: an admission policy that does not authorize an active public source fails the catalog closed with no lane metadata or source identity leaked; non-public evidence scope is rejected before disclosure; a policy-forbidden query stays typed forbidden with no evidence; the HTTP bearer gate answers 401 before any handler and never issues a session."
+    },
+    {
+      "case_id": "deletion",
+      "case_class": "deletion",
+      "execution_surface": [
+        "hermetic"
+      ],
+      "proves": "A deleted, tombstoned or absent source fails the lane closed at admission-policy load (deletion_state, tombstone and source_state each individually), before any lane metadata or evidence is disclosed."
+    },
+    {
+      "case_id": "pagination",
+      "case_class": "pagination",
+      "execution_surface": [
+        "hermetic",
+        "cluster"
+      ],
+      "proves": "Offset/limit cursors report exact totals, walk in a stable frozen order to a terminal null next_offset, replay byte-identically, clamp out-of-range offsets into a typed empty page, and candidate registry authority is never upgraded past partial."
+    },
+    {
+      "case_id": "reconnect",
+      "case_class": "reconnect",
+      "execution_surface": [
+        "hermetic",
+        "cluster"
+      ],
+      "proves": "Typed IDs, exact citations, ordering and errors replay byte-identically across a broker process restart on stdio; the stateless HTTP transport serves a client retaining a stale Mcp-Session-Id instead of a permanent 404, and both transports return one normalized signed-current object."
+    },
+    {
+      "case_id": "deterministic_order",
+      "case_class": "deterministic_order",
+      "execution_surface": [
+        "hermetic",
+        "cluster"
+      ],
+      "proves": "Fused ordering is a pure function of the signed inputs: bounded_borda_v1 with the frozen lane/source/span tie-break, byte-identical across repeated calls and across broker processes (double-run byte-identity)."
+    }
+  ],
+  "fixtures": {
+    "fixtures/lane-child.sh": {
+      "sha256": "2754c3ea8e8058a1b3e5574824473b41280577ed8e8bc3cea2295ef8cd1536db",
+      "bytes": 533
+    },
+    "fixtures/responses/alpha-ok.json": {
+      "sha256": "b09a647b1e8ab81fd07f523e3dee6cea42a8180fa3862f1943811f3de90e8326",
+      "bytes": 3022
+    },
+    "fixtures/responses/beta-conflict.json": {
+      "sha256": "ca9a662e645cc28074698bfd45a5b9d8366aaf9f92ed92a5face9de05394c2e6",
+      "bytes": 3048
+    },
+    "fixtures/responses/beta-ok.json": {
+      "sha256": "6f814835cab24d4040065405c423ccbdcb516e0060f5339f8f4681a955ddc445",
+      "bytes": 3036
+    },
+    "fixtures/responses/solo-forbidden.json": {
+      "sha256": "b882f8cad84f400a65b0b44ed60d6b2a0532e1012cf315ee0b9f139734f8df51",
+      "bytes": 1254
+    },
+    "fixtures/responses/solo-private-scope.json": {
+      "sha256": "d2b47407346654a9822bee5e44afc0f5b57bc533a0a5f44d696c84299ae75602",
+      "bytes": 3026
+    },
+    "fixtures/responses/solo-stale.json": {
+      "sha256": "7fc99b5413bfc443f9d91b6501991a7199ace9b242209852c50848e4e01c272a",
+      "bytes": 1220
+    },
+    "fixtures/policies/alpha.json": {
+      "sha256": "bf70651be789d5c85a1cf532c8e2c3c7665b5e8030b6779bd334e1db9787dac7",
+      "bytes": 980
+    },
+    "fixtures/policies/beta.json": {
+      "sha256": "53327c26804a0e45568f16143344566ae410041b81ae190217f6ab4490afc729",
+      "bytes": 1001
+    },
+    "fixtures/policies/deny-absent.json": {
+      "sha256": "be2327e06d5416246f534f8db20c5d6c111d883b2487ed31b626e1218ccea1d5",
+      "bytes": 1003
+    },
+    "fixtures/policies/deny-deleted.json": {
+      "sha256": "9426fe04decd8e8bc120a52d178a5f3b4c01d8497de907f224c70ffb7eec0fef",
+      "bytes": 1005
+    },
+    "fixtures/policies/deny-retrieval.json": {
+      "sha256": "e26fe7e7c51d8c89c7acdd916a9dec206d2f47cb5e58e49cf0f5c6be836cf310",
+      "bytes": 1005
+    },
+    "fixtures/policies/deny-tombstone.json": {
+      "sha256": "ad1bd65641c0bb1580b0826dbccf06ced20d4517bbbcd223eaac6284f2284fef",
+      "bytes": 1003
+    },
+    "fixtures/registry/candidate-manifest.json": {
+      "sha256": "8ffacfc23ccb85784db27a695910869b1d49d956733a489367aed6136d996665",
+      "bytes": 8019
+    }
+  },
+  "normalization": {
+    "volatile_fields": [
+      "observed_at",
+      "load_duration_ms",
+      "catalog_sha256",
+      "process_memory",
+      "indexed_at",
+      "index_age_ms",
+      "refresh"
+    ],
+    "replacement": "<volatile>",
+    "workspace_token": "${WORKSPACE}"
+  }
+}

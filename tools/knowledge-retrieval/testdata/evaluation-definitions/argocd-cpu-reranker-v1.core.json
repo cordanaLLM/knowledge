@@ -1,0 +1,365 @@
+{
+  "schema_version": "1.0.0",
+  "definition_kind": "retrieval_expanded_evaluation_definition",
+  "state": "frozen",
+  "execution_state": "blocked_exact_bindings",
+  "name": "argocd-v3.4.5-fusion-vs-cpu-reranker",
+  "revision": "argocd-cpu-reranker-challenger@1.0.0",
+  "frozen_at": "2026-07-16T18:00:00Z",
+  "comparison_mode": "paired_reranker",
+  "metric_algorithm": "macro-recall-mrr-ndcg-fixed-point@1.0.0",
+  "metric_scale": 1000000,
+  "cutoff_k": 10,
+  "inputs": {
+    "same_query_set": true,
+    "same_evidence_generation": true,
+    "cross_generation_score_comparison": false,
+    "principal_scope": "public",
+    "reference_suite_id": "retrieval-evaluation-suite:sha256:d3dacb1851f20d02227e2ddabac37ba79982dbc8c7e9549d7778b6918586999b",
+    "reference_suite_document_sha256": "sha256:68bb38e3d469a723d3d8e81620eedff26c3b7bab7b83b60907eb5f3a57019443",
+    "required_exact_binding_fields": [
+      "admission_policy_document_sha256",
+      "admission_policy_id",
+      "challenger_query_signal_artifact_id",
+      "challenger_query_signal_document_sha256",
+      "generation_document_sha256",
+      "generation_id",
+      "query_sha256",
+      "query_signal_artifact_id",
+      "query_signal_document_sha256",
+      "reference_suite_document_sha256",
+      "reference_suite_id",
+      "reranker_base_deployment_revision_sha",
+      "reranker_model_artifact_sha256",
+      "reranker_model_id",
+      "reranker_model_inventory_sha256",
+      "reranker_model_revision",
+      "reranker_provenance_deployment_revision_sha",
+      "reranker_serving_runtime_image_sha256",
+      "reranker_tokenizer_artifact_sha256",
+      "reranker_tokenizer_id",
+      "scorer_artifact_sha256",
+      "scorer_id",
+      "scorer_revision",
+      "source_commit_sha"
+    ],
+    "lanes": [
+      {
+        "lane_id": "argocd-v3.4.5",
+        "component_id": "argocd",
+        "component_version": "v3.4.5",
+        "repository_uri": "https://github.com/argoproj/argo-cd",
+        "source_commit_sha": "564b94973b284b8de98da7cee6eeade2cb941e46",
+        "objects": {
+          "binding_state": "exact",
+          "generation_id": "retrieval-generation:sha256:c9513a60286b39a186d56e1b8b2ea579716c8e2fe30fe05e3309529d4bda25d0",
+          "generation_document_sha256": "sha256:8800148d1b4b557a428e367686692f80c2f9725f55aeda545a3dc30f0b0200fa",
+          "admission_policy_id": "retrieval-admission:sha256:3c93e4524e7ed3c1eb59e7d60a2ec3ded17c2d8aff3a898448953af38c8a7c4f",
+          "admission_policy_document_sha256": "sha256:0c844b38b8a72d5245b393ed47c631aa2b6a01f5cdf64a4082fe6a8b7a115ee5"
+        }
+      }
+    ]
+  },
+  "profiles": [
+    {
+      "profile_id": "cpu-reranker-challenger",
+      "role": "challenger",
+      "mode": "reranked",
+      "fusion_profile": "reciprocal_rank_fusion_k60_int64@1.0.0",
+      "fusion_constant": 60,
+      "fusion_window": 100,
+      "rerank_window": 10,
+      "limit": 10,
+      "max_excerpt_bytes": 2048,
+      "scorer": {
+        "binding_state": "exact",
+        "scorer_id": "reciprocal_rank_fusion_k60_int64@1.0.0",
+        "scorer_revision": "retrieval-evaluator@1.0.0",
+        "scorer_artifact_sha256": "sha256:745bc32c9bffaee1c7b2bd0f25e77adda01286bcc96c910a0457b9a144454b8e"
+      },
+      "reranker": {
+        "binding_state": "exact",
+        "model_id": "OpenVINO/Qwen3-Reranker-0.6B-seq-cls-fp16-ov",
+        "model_revision": "4b0e5e6594de720a793646c0af2cfd52f8a45fa6",
+        "model_artifact_sha256": "sha256:9db1e2a87b6961df939dc8482b85ba4be07ebe9fa46050a37ad4b8ae6862031b",
+        "model_inventory_sha256": "sha256:6891237bf7fa11abfde9fbd5e0fa797812054aa09d05160f2256be6e2b866c6e",
+        "tokenizer_id": "OpenVINO/Qwen3-Reranker-0.6B-seq-cls-fp16-ov/tokenizer.json",
+        "tokenizer_artifact_sha256": "sha256:aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+        "serving_runtime_image_sha256": "sha256:cc13f88dc249cb94ab30cab90286b0c72a329e3d605da497bd4e594c5d21af00",
+        "base_deployment_revision_sha": "3e477e25b55f814b65646e1a76339b23b0c85198",
+        "provenance_deployment": {
+          "binding_state": "required_before_execution",
+          "revision_sha": null
+        },
+        "serving_profile": "ovms-v3-rerank",
+        "reranker_profile": "qwen3-sequence-classification-fp16",
+        "signal_derivation_profile": "caller_pinned_conditional_query_scores_for_complete_rerank_window@1.0.0",
+        "query_instruction": "none",
+        "document_instruction": "none",
+        "score_scale": 1000000
+      },
+      "resource_limits": {
+        "max_executions": 28,
+        "max_scanned_documents": 40000,
+        "max_input_documents_per_execution": 3600,
+        "max_input_bytes_per_execution": 16777216,
+        "max_returned_results": 220,
+        "max_returned_excerpt_bytes": 450560,
+        "max_query_signal_bytes": 1048576,
+        "max_wall_time_ms_per_execution": 60000,
+        "max_cpu_time_ms_per_execution": 60000,
+        "max_peak_rss_bytes": 4294967296
+      }
+    },
+    {
+      "profile_id": "fusion-only-baseline",
+      "role": "baseline",
+      "mode": "fusion_only",
+      "fusion_profile": "reciprocal_rank_fusion_k60_int64@1.0.0",
+      "fusion_constant": 60,
+      "fusion_window": 100,
+      "rerank_window": 0,
+      "limit": 10,
+      "max_excerpt_bytes": 2048,
+      "scorer": {
+        "binding_state": "exact",
+        "scorer_id": "reciprocal_rank_fusion_k60_int64@1.0.0",
+        "scorer_revision": "retrieval-evaluator@1.0.0",
+        "scorer_artifact_sha256": "sha256:745bc32c9bffaee1c7b2bd0f25e77adda01286bcc96c910a0457b9a144454b8e"
+      },
+      "reranker": null,
+      "resource_limits": {
+        "max_executions": 28,
+        "max_scanned_documents": 40000,
+        "max_input_documents_per_execution": 3600,
+        "max_input_bytes_per_execution": 16777216,
+        "max_returned_results": 220,
+        "max_returned_excerpt_bytes": 450560,
+        "max_query_signal_bytes": 262144,
+        "max_wall_time_ms_per_execution": 20000,
+        "max_cpu_time_ms_per_execution": 20000,
+        "max_peak_rss_bytes": 4294967296
+      }
+    }
+  ],
+  "authority": {
+    "definition_authority": "git_reviewed_frozen_definition",
+    "required_lane_authority": "reviewed_signed_current",
+    "required_evaluator_authority": "external_signed_evaluator",
+    "required_release_authority": "separate_signed_transition",
+    "caller_lane_selection_allowed": false,
+    "scorer_may_grant_authority": false,
+    "failed_lane_suppression_allowed": false,
+    "exact_citations_required": true
+  },
+  "comparison_gates": {
+    "minimum_recall_gain_ppm": 0,
+    "minimum_mrr_gain_ppm": 0,
+    "minimum_ndcg_gain_ppm": 50000,
+    "maximum_protected_regression_ppm": 0,
+    "minimum_cases_per_class": 1
+  },
+  "cases": [
+    {
+      "case_id": "case-diff",
+      "class": "configuration",
+      "scenario": "normal",
+      "query": "ignoreDifferences jsonPointers jqPathExpressions managedFieldsManagers",
+      "query_sha256": "sha256:b02ce401233fcff817fa2c2215531a6555889f4131f5af7662184a42e7b4fa46",
+      "query_signal": {
+        "binding_state": "exact",
+        "artifact_id": "query-signal-artifact:sha256:fc56a5d02c26ebfc05f007971b3333413525dadb6246a1f534c2a07bdfe051c9",
+        "document_sha256": "sha256:78a9e29758f7397349e6dbc83d1bdf4422aa4b91441db41687254cde043a4d69"
+      },
+      "challenger_query_signal": {
+        "binding_state": "required_before_execution",
+        "artifact_id": null,
+        "document_sha256": null
+      },
+      "required_lane_ids": [
+        "argocd-v3.4.5"
+      ],
+      "expected_outcome": "evidence",
+      "protected_class": true,
+      "required_gates": [
+        "citation_lineage",
+        "exact_input",
+        "quality_gain"
+      ],
+      "injection_marker": null,
+      "injection_marker_sha256": null,
+      "unavailable_lane_id": null,
+      "expected_evidence": [
+        {
+          "lane_id": "argocd-v3.4.5",
+          "selector_type": "span_id",
+          "span_id": "evidence-span:sha256:76d99cf9ad4e53b016340a81a478d1894f5cc501fd19a250c1df432a8d04052f",
+          "source_path": null,
+          "source_commit_sha": "564b94973b284b8de98da7cee6eeade2cb941e46",
+          "relation": "supports",
+          "minimum_grade": 3
+        }
+      ]
+    },
+    {
+      "case_id": "case-health",
+      "class": "configuration",
+      "scenario": "normal",
+      "query": "custom resource health checks",
+      "query_sha256": "sha256:3c1508f1b0aff08817cc3dcff825dd8018e460c5587668a756db1606a5649975",
+      "query_signal": {
+        "binding_state": "exact",
+        "artifact_id": "query-signal-artifact:sha256:0362b0708213a1613b961edb11cdf8d94158985dbd450076fd12e5069869b4b6",
+        "document_sha256": "sha256:e7ec34896280a72d1511aea88f04b1f557e31ee50e1ef6c28192ef0068772cf0"
+      },
+      "challenger_query_signal": {
+        "binding_state": "required_before_execution",
+        "artifact_id": null,
+        "document_sha256": null
+      },
+      "required_lane_ids": [
+        "argocd-v3.4.5"
+      ],
+      "expected_outcome": "evidence",
+      "protected_class": true,
+      "required_gates": [
+        "latency",
+        "protected_class_non_regression"
+      ],
+      "injection_marker": null,
+      "injection_marker_sha256": null,
+      "unavailable_lane_id": null,
+      "expected_evidence": [
+        {
+          "lane_id": "argocd-v3.4.5",
+          "selector_type": "span_id",
+          "span_id": "evidence-span:sha256:7f8c36fa2b8271404ae0b9ffba4fbeb5b80c78b111efd7d9cee3a0869550bda0",
+          "source_path": null,
+          "source_commit_sha": "564b94973b284b8de98da7cee6eeade2cb941e46",
+          "relation": "supports",
+          "minimum_grade": 3
+        }
+      ]
+    },
+    {
+      "case_id": "case-rolling-sync",
+      "class": "orchestration",
+      "scenario": "normal",
+      "query": "RollingSync matchExpressions maxUpdate steps",
+      "query_sha256": "sha256:bf0c0d10e8464905d0c73eb9d2c0529e995ae3faedd1808a7bf59472e3b96177",
+      "query_signal": {
+        "binding_state": "exact",
+        "artifact_id": "query-signal-artifact:sha256:e5088e2096bcb45a783f64fcdb6c6020dcd038ea64c12b91258ce172aa5a7504",
+        "document_sha256": "sha256:be1e15b2d556023b16528f9af851e2a21ead76aedaaac87c2dd0b1b21d97b125"
+      },
+      "challenger_query_signal": {
+        "binding_state": "required_before_execution",
+        "artifact_id": null,
+        "document_sha256": null
+      },
+      "required_lane_ids": [
+        "argocd-v3.4.5"
+      ],
+      "expected_outcome": "evidence",
+      "protected_class": true,
+      "required_gates": [
+        "deterministic_replay",
+        "resource"
+      ],
+      "injection_marker": null,
+      "injection_marker_sha256": null,
+      "unavailable_lane_id": null,
+      "expected_evidence": [
+        {
+          "lane_id": "argocd-v3.4.5",
+          "selector_type": "span_id",
+          "span_id": "evidence-span:sha256:458099898468ea9a5c6cea29d36f9c4d2e74bc54e5b742531c5908e006b94911",
+          "source_path": null,
+          "source_commit_sha": "564b94973b284b8de98da7cee6eeade2cb941e46",
+          "relation": "supports",
+          "minimum_grade": 3
+        }
+      ]
+    },
+    {
+      "case_id": "case-security-command",
+      "class": "security",
+      "scenario": "normal",
+      "query": "kubectl delete secret argocd-manager-token-XXXXXX kube-system",
+      "query_sha256": "sha256:2b1a6f3b82134797c01dbd0e814cbc715a218faf9773f7e2ad639ec2f323ddb8",
+      "query_signal": {
+        "binding_state": "exact",
+        "artifact_id": "query-signal-artifact:sha256:630f17c7a42b8ea78118afb1201ecce9c3541803900ddba74bc8d98827fcb699",
+        "document_sha256": "sha256:aad297ec8492a1efb7f6d06ba4346780cd770b721d4c6ed2887bdd4c430acd22"
+      },
+      "challenger_query_signal": {
+        "binding_state": "required_before_execution",
+        "artifact_id": null,
+        "document_sha256": null
+      },
+      "required_lane_ids": [
+        "argocd-v3.4.5"
+      ],
+      "expected_outcome": "evidence",
+      "protected_class": true,
+      "required_gates": [
+        "citation_lineage",
+        "protected_class_non_regression"
+      ],
+      "injection_marker": null,
+      "injection_marker_sha256": null,
+      "unavailable_lane_id": null,
+      "expected_evidence": [
+        {
+          "lane_id": "argocd-v3.4.5",
+          "selector_type": "span_id",
+          "span_id": "evidence-span:sha256:7a919fdc39e76c7458e310583f10ea03b237fe056bd263a3da492f6213ebd9ab",
+          "source_path": null,
+          "source_commit_sha": "564b94973b284b8de98da7cee6eeade2cb941e46",
+          "relation": "supports",
+          "minimum_grade": 3
+        }
+      ]
+    },
+    {
+      "case_id": "case-sync-wave",
+      "class": "orchestration",
+      "scenario": "normal",
+      "query": "sync waves phase order",
+      "query_sha256": "sha256:486ab6fc9a0f7564b549beac9978966d00ba252621fe72a8b84383178972f05d",
+      "query_signal": {
+        "binding_state": "exact",
+        "artifact_id": "query-signal-artifact:sha256:a9e644392e53c8157bc76250225a659eda4b9b5f4f8c0639219e6a048414da05",
+        "document_sha256": "sha256:3a0451b1a565f465072ac60be2a3d69f1193a61ce59f029b7c199fc0cab7a70f"
+      },
+      "challenger_query_signal": {
+        "binding_state": "required_before_execution",
+        "artifact_id": null,
+        "document_sha256": null
+      },
+      "required_lane_ids": [
+        "argocd-v3.4.5"
+      ],
+      "expected_outcome": "evidence",
+      "protected_class": true,
+      "required_gates": [
+        "exact_input",
+        "latency"
+      ],
+      "injection_marker": null,
+      "injection_marker_sha256": null,
+      "unavailable_lane_id": null,
+      "expected_evidence": [
+        {
+          "lane_id": "argocd-v3.4.5",
+          "selector_type": "span_id",
+          "span_id": "evidence-span:sha256:24e6f624e424f4e0c6b91ee041d1846d4c65212c0c5e210edb91db6ee6ee6f06",
+          "source_path": null,
+          "source_commit_sha": "564b94973b284b8de98da7cee6eeade2cb941e46",
+          "relation": "supports",
+          "minimum_grade": 3
+        }
+      ]
+    }
+  ]
+}

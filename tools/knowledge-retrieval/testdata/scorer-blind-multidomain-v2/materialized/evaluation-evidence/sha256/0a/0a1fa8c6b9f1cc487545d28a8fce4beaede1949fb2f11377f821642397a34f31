@@ -1,0 +1,9 @@
+// Incoming requests to a server should create a [Context], and outgoing
+// calls to servers should accept a Context. The chain of function
+// calls between them must propagate the Context, optionally replacing
+// it with a derived Context created using [WithCancel], [WithDeadline],
+// [WithTimeout], or [WithValue].
+//
+// A Context may be canceled to indicate that work done on its behalf should stop.
+// A Context with a deadline is canceled after the deadline passes.
+// When a Context is canceled, all Contexts derived from it are also canceled.

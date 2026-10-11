@@ -1,0 +1,137 @@
+{
+  "type": "object",
+  "properties": {
+    "image": {
+      "description": "Custom image (fastmcp + httpx) in your own registry, pinned by digest.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "digest": {
+          "description": "amd64 digest of the image in your registry; replace it after your own push.",
+          "type": "string"
+        },
+        "tag": {
+          "description": "informational; the digest is authoritative.",
+          "type": "string"
+        }
+      }
+    },
+    "openwebui": {
+      "description": "Open WebUI backend the server queries; existingSecret holds the key OPENWEBUI_API_KEY.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "baseURL": {
+          "type": "string"
+        },
+        "existingSecret": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "knowledgeBaseName": {
+      "description": "Knowledge base resolved by NAME at startup \u2192 collection id.",
+      "type": "string"
+    },
+    "mcpo": {
+      "description": "Existing in-cluster MCP-to-OpenAPI bridge. kb-mcp exposes a deliberately narrow read-only subset to Paperclip through its already-configured SSE MCP.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "baseURL": {
+          "type": "string"
+        },
+        "timeoutSeconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "maxResponseChars": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "requests": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "cpu": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              ]
+            },
+            "memory": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              ]
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "cpu": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              ]
+            },
+            "memory": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

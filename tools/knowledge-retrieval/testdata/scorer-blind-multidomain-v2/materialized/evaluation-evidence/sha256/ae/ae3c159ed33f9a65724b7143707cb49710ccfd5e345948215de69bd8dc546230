@@ -1,0 +1,5 @@
+// Because no call to Do returns until the one call to f returns, if f causes
+// Do to be called, it will deadlock.
+//
+// If f panics, Do considers it to have returned; future calls of Do return
+// without calling f.

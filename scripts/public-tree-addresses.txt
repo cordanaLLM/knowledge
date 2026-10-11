@@ -1,0 +1,76 @@
+# Private, shared and link-local IPv4 addresses the tracked tree may hold.
+# One entry per line: <address> <path>. scripts/check_public_tree.py refuses
+# every such address that is not listed here, and every entry that matches
+# nothing.
+#
+# The entries under tools/knowledge-retrieval/testdata/ are example addresses
+# in upstream documentation (Kubernetes, Cilium) that the scorer-blind fixtures
+# hold byte for byte, and in the freeze files that quote them. The entry of the
+# proxy test is a made-up client address, and the entry of the check is the
+# shared address range (RFC 6598) it tests against.
+10.1.2.3 apps/ai/kb-mcp/files/test_mcpo_proxy.py
+100.64.0.0 scripts/check_public_tree.py
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/materialized/evaluation-evidence/sha256/99/990c264c2ea98cae52d31b25588b7a7e003e2248d8deac77d8670fa46a7e30af
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/materialized/evaluation-freezes/sha256/a0/a0fd2cb1067e0b92122e3478632831e8822b5b34f63fa841d3bf60aa65d2de1b.json
+10.29.207.199 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.1 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.2 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.64 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.65 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.66 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.128 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.129 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.130 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.96.128.44 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.104.239.135 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.217.0.107 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.217.0.149 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.244.1.237 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.244.1.246 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+172.16.0.29 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+172.21.0.4 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+172.21.0.5 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+172.21.0.6 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+192.168.1.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+192.168.178.28 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+192.168.178.29 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.0.0.4 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.10.1.1 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.10.2.2 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.10.3.3 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+169.254.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/source-blobs/sha256/f5/f5f3bd8f0a0b9c64d59a44cd73f8e494a7366f2661c5d81bba5dc38e71864e1e
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v1/suite-freeze.core.json
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/materialized/evaluation-evidence/sha256/99/990c264c2ea98cae52d31b25588b7a7e003e2248d8deac77d8670fa46a7e30af
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/materialized/evaluation-freezes/sha256/dd/ddb38ed65dce0a56e6308689b82c085bd1276e3e1f6d48dea68dc792d5d0959d.json
+10.29.207.199 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.1 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.2 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.64 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.65 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.66 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.128 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.129 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.69.0.130 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.96.128.44 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.104.239.135 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.217.0.107 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.217.0.149 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.244.1.237 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.244.1.246 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+172.16.0.29 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+172.21.0.4 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+172.21.0.5 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+172.21.0.6 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+192.168.1.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+192.168.178.28 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+192.168.178.29 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/47/478fe8d36a774f4e3d4e73789168f94b6469a473fe10b17cd7f3752ec42eb30e
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.0.0.4 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.10.1.1 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.10.2.2 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.10.3.3 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+169.254.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/59/598aae11c7c8bea62e52d4d7d9270a6252d3d436d1176e898ac43b0215daa69b
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/source-blobs/sha256/f5/f5f3bd8f0a0b9c64d59a44cd73f8e494a7366f2661c5d81bba5dc38e71864e1e
+10.0.0.0 tools/knowledge-retrieval/testdata/scorer-blind-multidomain-v2/suite-freeze.core.json

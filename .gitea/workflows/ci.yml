@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Component Tests
+    # Uses self-hosted Gitea act_runner label registered in apps/dev/gitea-actions-runner
+    # (labels include ubuntu-latest, archeion-k8s, mapped to docker://node:20-bookworm).
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup environment and test toolchains
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq python3 python3-pip golang-go git curl
+          # Install Helm 3
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          # Install pytest
+          pip3 install --break-system-packages pytest httpx
+
+      - name: Run Go unit tests across modules
+        run: |
+          echo "=== Testing tools/knowledge-adapter-v2 ==="
+          (cd tools/knowledge-adapter-v2 && go test -v -count=1 ./...)
+
+          echo "=== Testing tools/knowledge-evidence ==="
+          (cd tools/knowledge-evidence && go test -v -count=1 ./...)
+
+          echo "=== Testing tools/knowledge-mcp ==="
+          (cd tools/knowledge-mcp && go test -v -count=1 ./...)
+
+          echo "=== Testing tools/knowledge-registry runners ==="
+          (cd tools/knowledge-registry/source-acquisition-plan-enumerator && go test -v -count=1 ./...)
+          (cd tools/knowledge-registry/source-acquisition-runner && go test -v -count=1 ./...)
+          (cd tools/knowledge-registry/source-acquisition-runner-v3 && go test -v -count=1 ./...)
+
+          echo "=== Testing tools/knowledge-snapshot ==="
+          (cd tools/knowledge-snapshot && go test -v -count=1 ./...)
+
+          echo "=== Testing tools/knowledge-retrieval (decoupled unit tests) ==="
+          (cd tools/knowledge-retrieval && go test -v -count=1 -run 'Test(BM25|Dense|Current|Hybrid|Lifecycle|Paired|Situating|FineSpan)' ./...)
+
+      - name: Run Python unit tests
+        run: |
+          echo "=== Running dogfood evidence fail-closed assertions ==="
+          python3 -m pytest -q tools/knowledge-dogfood-evidence/tests/test_fail_closed.py
+
+          echo "=== Running kb-mcp proxy unit tests ==="
+          python3 -m pytest -q apps/ai/kb-mcp/files/test_mcpo_proxy.py
+
+      - name: Run Helm lint and template dry-run
+        run: |
+          echo "=== Linting apps/ai/kb-mcp ==="
+          helm lint apps/ai/kb-mcp
+
+          echo "=== Validating Helm template rendering ==="
+          helm template kb-mcp apps/ai/kb-mcp > /dev/null

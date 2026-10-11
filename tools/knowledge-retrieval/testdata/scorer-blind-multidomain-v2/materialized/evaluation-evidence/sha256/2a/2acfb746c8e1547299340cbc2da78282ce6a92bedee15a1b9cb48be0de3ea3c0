@@ -1,0 +1,26 @@
+Maglev Consistent Hashing
+*************************
+
+Cilium's eBPF kube-proxy replacement supports consistent hashing by implementing a variant
+of `The Maglev hashing <https://static.googleusercontent.com/media/research.google.com/ko//pubs/archive/44824.pdf>`_
+in its load balancer for backend selection. This improves resiliency in case of
+failures. As well, it provides better load balancing properties since Nodes added to the cluster will
+make consistent backend selection throughout the cluster for a given 5-tuple without
+having to synchronize state with the other Nodes. Similarly, upon backend removal the backend
+lookup tables are reprogrammed with minimal disruption for unrelated backends (at most 1%
+difference in the reassignments) for the given service.
+
+Maglev hashing for services load balancing can be enabled by setting ``loadBalancer.algorithm=maglev``:
+
+.. cilium-helm-install::
+   :namespace: kube-system
+   :set: kubeProxyReplacement=true
+         loadBalancer.algorithm=maglev
+         k8sServiceHost=${API_SERVER_IP}
+         k8sServicePort=${API_SERVER_PORT}
+
+Note that Maglev hashing is applied only to external (N-S) traffic. For
+in-cluster service connections (E-W), sockets are assigned to service backends
+directly, e.g. at TCP connect time, without any intermediate hop and thus are
+not subject to Maglev. Maglev hashing is also supported for Cilium's
+:ref:`XDP<XDP Acceleration>` acceleration.

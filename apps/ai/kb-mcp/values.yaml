@@ -1,0 +1,32 @@
+# kb-mcp — FastMCP SSE + Streamable HTTP over the Open WebUI knowledge base.
+# Tiny custom image (fastmcp + httpx), pulled from your own registry and pinned
+# by digest. See README for the build+push command.
+image:
+  repository: registry.example.com/library/kb-mcp
+  # amd64 digest of the image in your registry; replace it after your own push.
+  digest: "sha256:d14f53ee462f48a2b248dcf210a6fcebb53f15abd169be95d9211c7417692060"
+  tag: "0.3.1" # informational; the digest is authoritative
+
+# Open WebUI backend the server queries. The default is the service name in the
+# release's own namespace; `existingSecret` holds the key OPENWEBUI_API_KEY.
+openwebui:
+  baseURL: http://open-webui:8080
+  existingSecret: kb-mcp-openwebui
+
+# Knowledge base resolved by NAME at startup → collection id.
+knowledgeBaseName: cluster-knowledge
+
+# Existing in-cluster MCP-to-OpenAPI bridge. kb-mcp exposes a deliberately
+# narrow read-only subset to Paperclip through its already-configured SSE MCP.
+mcpo:
+  baseURL: http://mcpo:8000
+  timeoutSeconds: 90
+  maxResponseChars: 65536
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

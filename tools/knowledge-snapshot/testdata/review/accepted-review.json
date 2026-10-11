@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_kind": "source_spec_review",
+  "proposal_id": "inventory-proposal:sha256:92686367ac3961da3cc1dabe1567eccfffc86c152beb060e345f311b32ab60c3",
+  "proposal_payload_sha256": "sha256:92686367ac3961da3cc1dabe1567eccfffc86c152beb060e345f311b32ab60c3",
+  "source_spec_sha256": "sha256:0f9d65474aced91697cee0b1beda13dee2b9f5fd163a3082e470a6037ac8ad99",
+  "reviewer": "fixture-reviewer",
+  "decision": "accepted",
+  "reviewed_at": "2026-07-16T09:00:00Z"
+}

@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kb-mcp
+  namespace: ai
+  labels:
+    app.kubernetes.io/name: kb-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kb-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kb-mcp
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kb-mcp-sse
+          image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mcp-sse
+              containerPort: 8000
+          env:
+            - name: MCP_TRANSPORT
+              value: sse
+            - name: MCP_PORT
+              value: "8000"
+            - name: OPENWEBUI_BASE_URL
+              value: "{{ .Values.openwebui.baseURL }}"
+            - name: KNOWLEDGE_BASE_NAME
+              value: "{{ .Values.knowledgeBaseName }}"
+            - name: MCPO_BASE_URL
+              value: "{{ .Values.mcpo.baseURL }}"
+            - name: MCPO_API_TIMEOUT_SECONDS
+              value: "{{ .Values.mcpo.timeoutSeconds }}"
+            - name: MCPO_MAX_RESPONSE_CHARS
+              value: "{{ .Values.mcpo.maxResponseChars }}"
+            # The Open WebUI API key, from the secret named in the values.
+            - name: OPENWEBUI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.openwebui.existingSecret }}"
+                  key: OPENWEBUI_API_KEY
+          readinessProbe:
+            tcpSocket:
+              port: mcp-sse
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: mcp-sse
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            # RO rootfs — give the interpreter a writable scratch dir.
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu | quote }}
+              memory: {{ .Values.resources.limits.memory }}
+        - name: kb-mcp-http
+          image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mcp-http
+              containerPort: 8001
+          env:
+            - name: MCP_TRANSPORT
+              value: http
+            - name: MCP_PORT
+              value: "8001"
+            - name: OPENWEBUI_BASE_URL
+              value: "{{ .Values.openwebui.baseURL }}"
+            - name: KNOWLEDGE_BASE_NAME
+              value: "{{ .Values.knowledgeBaseName }}"
+            - name: MCPO_BASE_URL
+              value: "{{ .Values.mcpo.baseURL }}"
+            - name: MCPO_API_TIMEOUT_SECONDS
+              value: "{{ .Values.mcpo.timeoutSeconds }}"
+            - name: MCPO_MAX_RESPONSE_CHARS
+              value: "{{ .Values.mcpo.maxResponseChars }}"
+            - name: OPENWEBUI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.openwebui.existingSecret }}"
+                  key: OPENWEBUI_API_KEY
+          readinessProbe:
+            tcpSocket:
+              port: mcp-http
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: mcp-http
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu | quote }}
+              memory: {{ .Values.resources.limits.memory }}
+      volumes:
+        - name: tmp
+          emptyDir: {}

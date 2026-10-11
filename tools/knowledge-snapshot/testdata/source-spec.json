@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_id": "snp:argocd:docs:sync-waves@v3.4.5:fixture",
+  "source_id": "src:argocd:docs@v3.4.5",
+  "canonical_uri": "https://github.com/argoproj/argo-cd/tree/564b94973b284b8de98da7cee6eeade2cb941e46",
+  "component_id": "cmp:github:argoproj/argo-cd",
+  "component_version_id": "ver:github:argoproj/argo-cd@v3.4.5",
+  "resolved_version": "v3.4.5",
+  "source_revision": "564b94973b284b8de98da7cee6eeade2cb941e46",
+  "channel_id": "chn:argocd:source",
+  "channel_type": "source",
+  "rights": {
+    "license_expression": "Apache-2.0",
+    "rights_basis": "upstream-license",
+    "attribution": "Argo Project",
+    "permissions": {
+      "commercial": "true",
+      "eval": "true",
+      "export": "true",
+      "media": "true",
+      "quote": "true",
+      "redistribution": "true",
+      "retrieval": "true",
+      "skill": "true",
+      "training": "true"
+    }
+  },
+  "access_scope": "public",
+  "classification": "public",
+  "security_domain": "public",
+  "language": "en",
+  "fetched_at": "2026-07-16T08:00:00Z",
+  "observed_at": "2026-07-16T08:00:00Z",
+  "mirror_path": "argo-cd/v3.4.5",
+  "provenance": {
+    "origin_kind": "official",
+    "generated": false,
+    "recursive_source": false
+  },
+  "exclusions": [],
+  "files": [
+    {
+      "relative_path": "CHANGELOG.md",
+      "media_type": "text/markdown",
+      "sha256": "sha256:75d2dd7fb55004602806ab3945cbf68efebba7d19c6611fc891d3af5601b3a7e",
+      "size": 89
+    },
+    {
+      "relative_path": "docs/reference/reused.md",
+      "media_type": "text/markdown",
+      "sha256": "sha256:d7513c38d72e64b610026e0e61bb21b4f608ea0e0d66bb8ed774f792bf462d78",
+      "size": 54
+    },
+    {
+      "relative_path": "docs/user-guide/reused.md",
+      "media_type": "text/markdown",
+      "sha256": "sha256:d7513c38d72e64b610026e0e61bb21b4f608ea0e0d66bb8ed774f792bf462d78",
+      "size": 54
+    },
+    {
+      "relative_path": "docs/user-guide/sync-waves.md",
+      "media_type": "text/markdown",
+      "sha256": "sha256:9a26e6f9bba805618a04d4813391c515c155e5fb5a0fa1629e97fd9b5cc9f7c8",
+      "size": 84
+    }
+  ]
+}

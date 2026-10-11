@@ -1,0 +1,20 @@
+{
+  "policy_id": "retrieval-admission:sha256:c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+  "policy_payload_sha256": "sha256:c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+  "schema_version": "1.0.0",
+  "policy_kind": "public_retrieval_admission",
+  "state": "active",
+  "snapshot_manifest_id": "snapshot-manifest:sha256:d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0",
+  "evidence_manifest_id": "evidence-manifest:sha256:d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1",
+  "snapshot_id": "snp:argorollouts:v1.8.0",
+  "source_id": "src:github:argoproj/argo-rollouts@v1.8.0:docs",
+  "component_id": "cmp:github:argoproj/argo-rollouts",
+  "component_version_id": "ver:github:argoproj/argo-rollouts@v1.8.0",
+  "access_scope": "public",
+  "retrieval_allowed": false,
+  "source_state": "present",
+  "deletion_state": "active",
+  "tombstone": false,
+  "evaluated_at": "2026-07-16T09:00:00Z",
+  "fresh_until": "2026-07-17T09:00:00Z"
+}

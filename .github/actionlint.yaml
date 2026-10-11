@@ -1,0 +1,8 @@
+---
+# actionlint rejects a runs-on label that is missing from its built-in table of
+# GitHub-hosted runners unless the label is declared here. actionlint v1.7.12 does
+# not know the label below, which licence.yml runs on. Delete a label once
+# actionlint accepts .github/workflows without it.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04

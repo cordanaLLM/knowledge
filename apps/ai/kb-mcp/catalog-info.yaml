@@ -1,0 +1,18 @@
+{
+  "apiVersion": "backstage.io/v1alpha1",
+  "kind": "Component",
+  "metadata": {
+    "name": "kb-mcp",
+    "title": "Knowledge MCP",
+    "description": "Bounded cluster knowledge and research MCP server.",
+    "annotations": {
+      "cordana.dev/repository-map-id": "kb-mcp"
+    }
+  },
+  "spec": {
+    "type": "service",
+    "lifecycle": "experimental",
+    "owner": "ai-platform",
+    "system": "cordana-knowledge"
+  }
+}

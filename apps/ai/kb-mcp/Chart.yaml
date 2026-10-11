@@ -1,0 +1,9 @@
+apiVersion: v2
+name: kb-mcp
+description: >-
+  Remote MCP server exposing one Open WebUI knowledge base plus
+  bounded read-only web and scholarly research tools over SSE for Paperclip and
+  Streamable HTTP for Codex/VS Code.
+type: application
+version: 0.3.1
+appVersion: "0.3.1"
