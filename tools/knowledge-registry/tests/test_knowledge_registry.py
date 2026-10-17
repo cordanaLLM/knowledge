@@ -8593,5 +8593,42 @@ class OciIdentityWaveR4Test(unittest.TestCase):
         )
 
 
+class KillProcessGroupTest(unittest.TestCase):
+    """kill_process_group never sends a group signal to 1 or less or to its own group (cordanaLLM/knowledge#2)."""
+
+    def _run(self, pid: object, killpg_error: BaseException | None = None) -> tuple[list[tuple[object, int]], mock.Mock]:
+        sent: list[tuple[object, int]] = []
+
+        def killpg(group: object, number: int) -> None:
+            sent.append((group, number))
+            if killpg_error is not None:
+                raise killpg_error
+
+        process = mock.Mock(pid=pid)
+        with mock.patch.object(kr.os, "killpg", side_effect=killpg):
+            kr.kill_process_group(process)
+        return sent, process
+
+    def test_refused_groups_are_never_signalled_and_the_child_is_killed_alone(self) -> None:
+        for pid in (-1, 0, 1, True, "7", os.getpgrp(), mock.MagicMock().pid):
+            with self.subTest(pid=pid):
+                sent, process = self._run(pid)
+                self.assertEqual(sent, [])
+                process.kill.assert_called_once_with()
+
+    def test_a_child_group_above_one_is_killed_as_a_group(self) -> None:
+        group = os.getpgrp() + 1 if os.getpgrp() > 1 else 2
+        sent, process = self._run(group)
+        self.assertEqual(sent, [(group, kr.signal.SIGKILL)])
+        process.kill.assert_not_called()
+
+    def test_a_vanished_group_is_fine_and_a_refused_one_kills_the_child(self) -> None:
+        group = os.getpgrp() + 1 if os.getpgrp() > 1 else 2
+        _sent, process = self._run(group, ProcessLookupError())
+        process.kill.assert_not_called()
+        _sent, process = self._run(group, PermissionError())
+        process.kill.assert_called_once_with()
+
+
 if __name__ == "__main__":
     unittest.main()

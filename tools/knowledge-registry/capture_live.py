@@ -10,7 +10,6 @@ import json
 import os
 import re
 import selectors
-import signal
 import subprocess
 import sys
 import time
@@ -321,12 +320,7 @@ def invoke(
         returncode = process.wait(timeout=remaining)
     except (RuntimeError, subprocess.TimeoutExpired) as exc:
         if process.poll() is None:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            except OSError:
-                process.kill()
+            kr.kill_process_group(process)
         process.wait()
         if isinstance(exc, subprocess.TimeoutExpired):
             raise RuntimeError(f"command timed out after {timeout:g}s") from exc
