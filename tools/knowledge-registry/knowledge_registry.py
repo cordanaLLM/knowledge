@@ -24,6 +24,7 @@ import os
 import re
 import selectors
 import shlex
+import signal
 import stat
 import subprocess
 import sys
@@ -2733,6 +2734,26 @@ def trusted_executable_identity(path: Path) -> dict[str, Any]:
     }
 
 
+def kill_process_group(process: subprocess.Popen[bytes]) -> None:
+    """Kill the process group a child started with start_new_session leads, else the child alone.
+
+    The group id is the child's pid. One of 1 or less, or this process's own group, is never
+    signalled: os.killpg(1, sig) is kill(-1, sig) and reaches every process the user owns,
+    killpg(0, sig) reaches the caller's own group, and a test double's pid reads as 1
+    (cordanaLLM/knowledge#2). Such a child is killed alone.
+    """
+    group = process.pid
+    if not isinstance(group, int) or isinstance(group, bool) or group <= 1 or group == os.getpgrp():
+        process.kill()
+        return
+    try:
+        os.killpg(group, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    except OSError:
+        process.kill()
+
+
 def run_trusted_executable(
     executable: Path,
     arguments: Sequence[str],
@@ -2801,12 +2822,7 @@ def run_trusted_executable(
         returncode = process.wait(timeout=remaining)
     except (RegistryInputError, subprocess.TimeoutExpired) as exc:
         if process.poll() is None:
-            try:
-                os.killpg(process.pid, 9)
-            except ProcessLookupError:
-                pass
-            except OSError:
-                process.kill()
+            kill_process_group(process)
         process.wait()
         if isinstance(exc, subprocess.TimeoutExpired):
             raise RegistryInputError(
