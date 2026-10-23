@@ -878,16 +878,17 @@ func parseHexQuad(raw []byte) (uint16, bool) {
 
 // readRegularNoFollow opens one bounded regular file without following symlinks
 // and rejects any file that changes underneath the read.
-func readRegularNoFollow(path string, maximum int64) (result []byte, err error) {
+func readRegularNoFollow(path string, maximum int64) ([]byte, error) {
 	descriptor, err := syscall.Open(path, syscall.O_RDONLY|syscall.O_CLOEXEC|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
 	if err != nil {
 		return nil, err
 	}
 	file := os.NewFile(uintptr(descriptor), path)
 	if file == nil {
-		return nil, closeDescriptorWithError(errors.New("could not own file descriptor"), descriptor)
+		syscall.Close(descriptor)
+		return nil, errors.New("could not own file descriptor")
 	}
-	defer func() { err = closeWithError(err, file) }()
+	defer file.Close()
 	before, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -906,7 +907,7 @@ func readRegularNoFollow(path string, maximum int64) (result []byte, err error) 
 	if err != nil {
 		return nil, err
 	}
-	if !sameStableFile(before, after) {
+	if !os.SameFile(before, after) || before.Size() != after.Size() || before.ModTime() != after.ModTime() {
 		return nil, errors.New("input changed while it was read")
 	}
 	return raw, nil
@@ -919,8 +920,4 @@ func sortedKeys(values map[string]struct{}) []string {
 	}
 	sort.Strings(keys)
 	return keys
-}
-
-func sameStableFile(before, after os.FileInfo) bool {
-	return os.SameFile(before, after) && before.Size() == after.Size() && before.ModTime() == after.ModTime()
 }
