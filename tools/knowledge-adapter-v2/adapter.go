@@ -280,6 +280,10 @@ func bundlePaths(root string, target acquisitionTarget, spec SourceSpec, proposa
 }
 
 func writeBundleFiles(bundle authorityBundle, specBytes, proposalBytes, receiptBytes, signature []byte) error {
+	allowedSigners, err := allowedSignersDocument()
+	if err != nil {
+		return fmt.Errorf("prepare allowed_signers: %w", err)
+	}
 	writes := []struct {
 		path string
 		data []byte
@@ -289,7 +293,7 @@ func writeBundleFiles(bundle authorityBundle, specBytes, proposalBytes, receiptB
 		{bundle.proposalPath, proposalBytes, 0o600},
 		{bundle.receiptPath, receiptBytes, 0o600},
 		{bundle.signaturePath, signature, 0o600},
-		{bundle.allowedSignersPath, allowedSignersDocument(), 0o600},
+		{bundle.allowedSignersPath, allowedSigners, 0o600},
 	}
 	for _, write := range writes {
 		if err := os.WriteFile(write.path, write.data, write.mode); err != nil {
