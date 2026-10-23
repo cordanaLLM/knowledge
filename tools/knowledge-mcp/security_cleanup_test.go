@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -173,5 +174,109 @@ func TestPublishCleanupSuccessKeepsPublishedTrees(t *testing.T) {
 	}
 	if _, err := os.Stat(published); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func placementFixture(t *testing.T) (string, string) {
+	t.Helper()
+	payload, target := t.TempDir(), t.TempDir()
+	for _, name := range []string{publishStateDirName, publishTrustDirName} {
+		if err := os.Mkdir(filepath.Join(payload, name), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return payload, target
+}
+
+func assertDegradedPublication(t *testing.T, target string) {
+	t.Helper()
+	for _, name := range []string{publishStateDirName, publishTrustDirName, publishRetrievalDirName} {
+		if _, err := os.Lstat(filepath.Join(target, name)); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("published %s survived failure: %v", name, err)
+		}
+	}
+	raw, err := os.ReadFile(filepath.Join(target, publishStatusFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var record publishStatus
+	if err := json.Unmarshal(raw, &record); err != nil {
+		t.Fatal(err)
+	}
+	if record.State != "degraded" {
+		t.Errorf("status mismatch: %+v", record)
+	}
+}
+
+func TestRetrievalSealFailureDegradesPublication(t *testing.T) {
+	payload, target := placementFixture(t)
+	outside := t.TempDir()
+	if err := os.Chmod(outside, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(payload, publishRetrievalDirName)); err != nil {
+		t.Fatal(err)
+	}
+	status := &publishStatus{State: "published"}
+	cause := placePublishPayload(config{}, payload, target, status)
+	err := finishPublishMaterialization(target, "unused", status, cause, func(string) error { return nil })
+	if err == nil {
+		t.Error("retrieval sealing failure was not propagated")
+	}
+	assertDegradedPublication(t, target)
+	info, err := os.Stat(outside)
+	if err != nil || info.Mode().Perm() != 0o700 {
+		t.Errorf("outside directory changed: %v %v", info, err)
+	}
+}
+
+func TestUnpinnedRetrievalPublication(t *testing.T) {
+	payload, target := placementFixture(t)
+	if err := os.Mkdir(filepath.Join(payload, publishRetrievalDirName), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	status := &publishStatus{State: "published"}
+	if err := placePublishPayload(config{}, payload, target, status); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := unsealDirectoryTree(target); err != nil {
+			t.Error(err)
+		}
+	})
+	if status.RetrievalState != "published_unverified: no catalog pin was configured" {
+		t.Fatal(status.RetrievalState)
+	}
+}
+
+func TestRetrievalPlacementRenameFailure(t *testing.T) {
+	target := t.TempDir()
+	state, err := placeRetrievalTree(config{}, filepath.Join(target, "missing"), target)
+	if err == nil || !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("rename failure: %q %v", state, err)
+	}
+	if state != "" {
+		t.Fatalf("failed placement reported state: %q", state)
+	}
+}
+
+func TestRejectedRetrievalCatalogRemovesTree(t *testing.T) {
+	payload, target := placementFixture(t)
+	retrieval := filepath.Join(payload, publishRetrievalDirName)
+	if err := os.MkdirAll(filepath.Join(retrieval, "nested"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(retrieval, "nested", "fixture"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	state, err := placeRetrievalTree(config{retrievalCatalog: filepath.Join(target, "missing-catalog"), retrievalCatalogHash: strings.Repeat("0", 64)}, retrieval, target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(state, "unavailable: catalog verification failed:") {
+		t.Fatal(state)
+	}
+	if _, err := os.Lstat(filepath.Join(target, publishRetrievalDirName)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("rejected retrieval tree survived: %v", err)
 	}
 }

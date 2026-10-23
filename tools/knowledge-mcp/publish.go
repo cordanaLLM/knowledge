@@ -589,7 +589,13 @@ func placePublishPayload(configuration config, payload, target string, status *p
 	}
 	stagedRetrieval := filepath.Join(payload, publishRetrievalDirName)
 	if _, statErr := os.Stat(stagedRetrieval); statErr == nil {
-		status.RetrievalState = placeRetrievalTree(configuration, stagedRetrieval, target)
+		state, err := placeRetrievalTree(configuration, stagedRetrieval, target)
+		if err != nil {
+			return fmt.Errorf("place retrieval payload: %w", err)
+		}
+		status.RetrievalState = state
+	} else if !errors.Is(statErr, os.ErrNotExist) {
+		return fmt.Errorf("inspect staged retrieval tree: %w", statErr)
 	}
 	for _, name := range []string{publishStateDirName, publishTrustDirName} {
 		if err := sealDirectoryTree(filepath.Join(target, name)); err != nil {
@@ -604,26 +610,29 @@ func placePublishPayload(configuration config, payload, target string, status *p
 // in-cluster paths that do not exist under staging. A catalog that fails to
 // load takes the whole retrieval tree back out, leaving the broker to report a
 // typed degraded federation rather than serving unpinned lanes.
-func placeRetrievalTree(configuration config, stagedRetrieval, target string) string {
+func placeRetrievalTree(configuration config, stagedRetrieval, target string) (string, error) {
 	final := filepath.Join(target, publishRetrievalDirName)
 	if err := os.Rename(stagedRetrieval, final); err != nil {
-		return "unavailable: place retrieval tree: " + err.Error()
+		return "", fmt.Errorf("place retrieval tree: %w", err)
 	}
 	if err := sealDirectoryTree(final); err != nil {
-		return "unavailable: seal retrieval tree: " + err.Error()
+		return "", fmt.Errorf("seal retrieval tree: %w", err)
 	}
 	if configuration.retrievalCatalog == "" || configuration.retrievalCatalogHash == "" {
-		return "published_unverified: no catalog pin was configured"
+		return "published_unverified: no catalog pin was configured", nil
 	}
 	provider := newRetrievalProvider(config{
 		retrievalCatalog:     configuration.retrievalCatalog,
 		retrievalCatalogHash: configuration.retrievalCatalogHash,
 	})
 	if _, err := provider.loadRetrievalCatalog(); err != nil {
-		failure := errors.Join(err, os.RemoveAll(final))
-		return "unavailable: catalog verification failed: " + failure.Error()
+		if cleanupErr := errors.Join(unsealDirectoryTree(final), os.RemoveAll(final)); cleanupErr != nil {
+			return "", errors.Join(fmt.Errorf("catalog verification failed: %w", err),
+				fmt.Errorf("remove rejected retrieval tree: %w", cleanupErr))
+		}
+		return "unavailable: catalog verification failed: " + err.Error(), nil
 	}
-	return "published"
+	return "published", nil
 }
 
 func clearPublishedTrees(target string) error {
