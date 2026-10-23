@@ -650,6 +650,22 @@ func validateProjectionReceipt(receipt projectionReceipt) error {
 func (projection *registryProjection) validate() error {
 	ctx, cancel := context.WithTimeout(context.Background(), projectionOpenTimeout)
 	defer cancel()
+	for _, validate := range []func(context.Context) error{
+		projection.validateDatabaseIdentity,
+		projection.validateTableSet,
+		projection.validateSchemaObjects,
+		projection.validateCellAndRowBounds,
+		projection.validateMetadata,
+		projection.validateReceiptTableCounts,
+	} {
+		if err := validate(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (projection *registryProjection) validateDatabaseIdentity(ctx context.Context) error {
 	if _, err := projection.db.ExecContext(ctx, "PRAGMA query_only=ON"); err != nil {
 		return fmt.Errorf("force projection query-only mode: %w", err)
 	}
@@ -664,6 +680,10 @@ func (projection *registryProjection) validate() error {
 	if err := projection.db.QueryRowContext(ctx, "PRAGMA quick_check").Scan(&check); err != nil || check != "ok" {
 		return fmt.Errorf("projection integrity check failed: %s", check)
 	}
+	return nil
+}
+
+func (projection *registryProjection) validateTableSet(ctx context.Context) error {
 	rows, err := projection.db.QueryContext(ctx, `SELECT name FROM sqlite_schema
 WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if err != nil {
@@ -684,12 +704,10 @@ WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if strings.Join(tables, "\x00") != strings.Join(projectionTables, "\x00") {
 		return fmt.Errorf("projection table set is invalid: %v", tables)
 	}
-	if err := projection.validateSchemaObjects(ctx); err != nil {
-		return err
-	}
-	if err := projection.validateCellAndRowBounds(ctx); err != nil {
-		return err
-	}
+	return nil
+}
+
+func (projection *registryProjection) validateMetadata(ctx context.Context) error {
 	meta, err := projection.readMeta(ctx)
 	if err != nil {
 		return err
@@ -712,6 +730,10 @@ WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if err := json.Unmarshal([]byte(meta["source_size_bytes"]), &sourceSize); err != nil || sourceSize != projection.receipt.SourceSizeBytes {
 		return errors.New("projection source size binding is invalid")
 	}
+	return projection.validateMetadataValues(meta)
+}
+
+func (projection *registryProjection) validateMetadataValues(meta map[string]string) error {
 	if err := decodeProjectionMeta(meta["counts"], &projection.counts); err != nil {
 		return fmt.Errorf("decode projection counts: %w", err)
 	}
@@ -734,10 +756,20 @@ WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if err := validateReconciliationBounds(projection.reconcile); err != nil {
 		return fmt.Errorf("validate projection reconciliation: %w", err)
 	}
+	return nil
+}
+
+func (projection *registryProjection) validateReceiptTableCounts(ctx context.Context) error {
 	for table, expected := range projection.receipt.TableCounts {
+		if _, known := projectionColumns[table]; !known {
+			return fmt.Errorf("unknown projection table %q", table)
+		}
 		var count int
-		query := "SELECT COUNT(*) FROM " + table
-		if err := projection.db.QueryRowContext(ctx, query).Scan(&count); err != nil || count != expected {
+		query := "SELECT COUNT(*) FROM " + table // #nosec G202 -- table is checked against the fixed projectionColumns allowlist above.
+		if err := projection.db.QueryRowContext(ctx, query).Scan(&count); err != nil {
+			return fmt.Errorf("count projection table %s: %w", table, err)
+		}
+		if count != expected {
 			return fmt.Errorf("projection table count mismatch for %s", table)
 		}
 	}
