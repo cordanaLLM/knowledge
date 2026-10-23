@@ -19,7 +19,7 @@ package main
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" // #nosec G505 -- Git blob object identifiers require SHA-1; content integrity is also bound by SHA-256.
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -502,7 +502,11 @@ func (e *enumerator) enumerateBlob(ctx context.Context, repository, blobSHA stri
 	if blob.SHA != blobSHA || blob.Size == nil || *blob.Size != expectedSize || blob.Encoding != "base64" {
 		return "", 0, errors.New("blob response identity, encoding, or size drifted")
 	}
-	compact := strings.NewReplacer("\n", "", "\r", "").Replace(blob.Content)
+	return decodeGitBlob(blob.Content, blobSHA, expectedSize)
+}
+
+func decodeGitBlob(content, blobSHA string, expectedSize int64) (string, int64, error) {
+	compact := strings.NewReplacer("\n", "", "\r", "").Replace(content)
 	raw, err := base64.StdEncoding.Strict().DecodeString(compact)
 	if err != nil {
 		return "", 0, errors.New("blob content is not strict base64")
@@ -511,7 +515,7 @@ func (e *enumerator) enumerateBlob(ctx context.Context, repository, blobSHA stri
 		return "", 0, errors.New("decoded blob size drifted from the tree edge")
 	}
 	identity := append([]byte("blob "+strconv.Itoa(len(raw))+"\x00"), raw...)
-	gitDigest := sha1.Sum(identity)
+	gitDigest := sha1.Sum(identity) // #nosec G401 -- Reconstruct the protocol-defined Git blob SHA-1 identity; SHA-256 separately binds the artifact bytes.
 	if hex.EncodeToString(gitDigest[:]) != blobSHA {
 		return "", 0, errors.New("decoded blob does not reproduce the declared Git SHA-1")
 	}
@@ -519,7 +523,6 @@ func (e *enumerator) enumerateBlob(ctx context.Context, repository, blobSHA stri
 	return "sha256:" + hex.EncodeToString(rawDigest[:]), int64(len(raw)), nil
 }
 
-// getTree fetches and guards one tree. Reused VERBATIM from P1-SRC-03 runner.go.
 func (e *enumerator) getTree(ctx context.Context, repository, sha string) (gitTree, error) {
 	key := repository + ":" + sha
 	if cached, ok := e.treeCache[key]; ok {
@@ -541,7 +544,7 @@ func (e *enumerator) getTree(ctx context.Context, repository, sha string) (gitTr
 
 // getJSON performs one bounded, redirect-forbidden, single-content-type GET.
 // Reused VERBATIM from P1-SRC-03 runner.go (only the User-Agent string differs).
-func (e *enumerator) getJSON(ctx context.Context, repository, suffix string, destination any) error {
+func (e *enumerator) getJSON(ctx context.Context, repository, suffix string, destination any) (err error) {
 	if _, ok := e.allowedRepos[repository]; !ok {
 		return errors.New("repository is outside the plan-request denominator")
 	}
@@ -549,7 +552,7 @@ func (e *enumerator) getJSON(ctx context.Context, repository, suffix string, des
 		return errors.New("HTTP request is outside the exact capability")
 	}
 	endpoint := e.baseURL.String() + "/repos/" + repository + suffix
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil) // #nosec G704 -- newEnumerator pins the production API origin to api.github.com and forbids redirects before sending; alternate origins require explicit test mode.
 	if err != nil {
 		return err
 	}
@@ -561,32 +564,17 @@ func (e *enumerator) getJSON(ctx context.Context, repository, suffix string, des
 		request.Header.Set("Authorization", "Bearer "+e.token)
 	}
 	e.requests++
-	response, err := e.client.Do(request)
+	response, err := e.client.Do(request) // #nosec G704 -- newEnumerator pins the production API origin to api.github.com and forbids redirects before sending; alternate origins require explicit test mode.
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
-		return fmt.Errorf("GitHub REST returned HTTP %d", response.StatusCode)
-	}
-	if response.Request == nil || response.Request.URL.String() != endpoint {
-		return errors.New("Git-object response arrived through a redirected or changed endpoint")
-	}
-	if len(response.Header.Values("Link")) != 0 {
-		return errors.New("Git-object endpoint returned a pagination Link header")
-	}
-	encodings := response.Header.Values("Content-Encoding")
-	if len(encodings) > 1 || (len(encodings) == 1 && encodings[0] != "identity") {
-		return errors.New("Git-object response used an unexpected content encoding")
-	}
-	contentTypes := response.Header.Values("Content-Type")
-	if len(contentTypes) != 1 {
-		return errors.New("Git-object response has an ambiguous or missing content type")
-	}
-	contentType, _, err := mime.ParseMediaType(contentTypes[0])
-	if err != nil || contentType != "application/json" {
-		return errors.New("Git-object response is not application/json")
+	defer func() { err = closeWithError(err, response.Body) }()
+	return e.readGitObjectResponse(response, endpoint, destination)
+}
+
+func (e *enumerator) readGitObjectResponse(response *http.Response, endpoint string, destination any) error {
+	if err := validateGitObjectResponse(response, endpoint); err != nil {
+		return err
 	}
 	remaining := maxResponseBytes - e.responseBytes
 	if remaining <= 0 {
@@ -615,6 +603,48 @@ func (e *enumerator) getJSON(ctx context.Context, repository, suffix string, des
 
 // exactTreeEntry selects one canonical tree child. Reused VERBATIM from
 // P1-SRC-03 runner.go.
+func validateGitObjectResponse(response *http.Response, endpoint string) error {
+	if err := gitObjectStatusError(response); err != nil {
+		return err
+	}
+
+	if response.Request == nil || response.Request.URL.String() != endpoint {
+		return errors.New("Git-object response arrived through a redirected or changed endpoint")
+	}
+	if len(response.Header.Values("Link")) != 0 {
+		return errors.New("Git-object endpoint returned a pagination Link header")
+	}
+	encodings := response.Header.Values("Content-Encoding")
+	if len(encodings) > 1 || (len(encodings) == 1 && encodings[0] != "identity") {
+		return errors.New("Git-object response used an unexpected content encoding")
+	}
+	return validateGitObjectContentType(response)
+}
+
+func validateGitObjectContentType(response *http.Response) error {
+	contentTypes := response.Header.Values("Content-Type")
+	if len(contentTypes) != 1 {
+		return errors.New("Git-object response has an ambiguous or missing content type")
+	}
+	contentType, _, err := mime.ParseMediaType(contentTypes[0])
+	if err != nil || contentType != "application/json" {
+		return errors.New("Git-object response is not application/json")
+	}
+
+	return nil
+}
+
+func gitObjectStatusError(response *http.Response) error {
+	if response.StatusCode != http.StatusOK {
+		_, drainErr := io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
+		if drainErr != nil {
+			drainErr = fmt.Errorf("drain Git-object error response: %w", drainErr)
+		}
+		return errors.Join(fmt.Errorf("GitHub REST returned HTTP %d", response.StatusCode), drainErr)
+	}
+	return nil
+}
+
 func exactTreeEntry(entries []gitTreeEntry, name string) (gitTreeEntry, error) {
 	seen := make(map[string]struct{}, len(entries))
 	var match *gitTreeEntry
