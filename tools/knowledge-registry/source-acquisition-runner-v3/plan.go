@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -53,7 +54,7 @@ func isArmoredSSHSIG(signature []byte) bool {
 // invocation used across the knowledge tools: the document is fed on stdin, the
 // principal and namespace are pinned, and the allowed_signers policy plus the
 // detached signature are written to a private temp directory.
-func verifySSHSIGNamespace(document, signature, allowedSigners []byte, principal, namespace string) error {
+func verifySSHSIGNamespace(document, signature, allowedSigners []byte, principal, namespace string) (err error) {
 	info, err := os.Lstat(sshKeygenPath)
 	if err != nil || !info.Mode().IsRegular() || info.Mode()&0o111 == 0 {
 		return errors.New("fixed ssh-keygen verifier is unavailable")
@@ -62,7 +63,11 @@ func verifySSHSIGNamespace(document, signature, allowedSigners []byte, principal
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(directory)
+	defer func() {
+		if cleanupErr := os.RemoveAll(directory); cleanupErr != nil {
+			err = errors.Join(err, fmt.Errorf("remove signature verification directory: %w", cleanupErr))
+		}
+	}()
 	policyPath := filepath.Join(directory, "allowed_signers")
 	signaturePath := filepath.Join(directory, "plan.sig")
 	if err := os.WriteFile(policyPath, allowedSigners, 0o600); err != nil {
@@ -74,7 +79,7 @@ func verifySSHSIGNamespace(document, signature, allowedSigners []byte, principal
 	ctx, cancel := context.WithTimeout(context.Background(), sshKeygenVerifyTimeout)
 	defer cancel()
 	command := exec.CommandContext(ctx, sshKeygenPath, "-Y", "verify", "-f", policyPath,
-		"-I", principal, "-n", namespace, "-s", signaturePath)
+		"-I", principal, "-n", namespace, "-s", signaturePath) // #nosec G204 -- sshKeygenPath is the fixed /usr/bin/ssh-keygen verifier; arguments are passed directly without a shell.
 	command.Stdin = bytes.NewReader(document)
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard
