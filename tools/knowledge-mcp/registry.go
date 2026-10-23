@@ -505,7 +505,7 @@ func (provider *registryProvider) loadStore(aliasRaw, trustedPolicy []byte, trus
 }
 
 func fileSize(path string) int64 {
-	info, err := os.Stat(path)
+	info, err := os.Stat(path) // #nosec G703 -- operator-selected registry or trust path is inspected for size, regular-file type and identity before use.
 	if err != nil {
 		return 0
 	}
@@ -574,7 +574,7 @@ func readBoundRegular(path string, maximum int64, rejectSymlink bool) ([]byte, e
 	if err != nil || openedAfter.Size() != openedBefore.Size() || !openedAfter.ModTime().Equal(openedBefore.ModTime()) {
 		return nil, errors.New("registry object metadata changed while it was read")
 	}
-	pathAfter, err := os.Lstat(path)
+	pathAfter, err := os.Lstat(path) // #nosec G703 -- operator-selected registry or trust path is inspected for size, regular-file type and identity before use.
 	if err != nil || (rejectSymlink && pathAfter.Mode()&os.ModeSymlink != 0) || !os.SameFile(openedBefore, pathAfter) {
 		return nil, errors.New("registry object path changed while it was read")
 	}
@@ -582,7 +582,7 @@ func readBoundRegular(path string, maximum int64, rejectSymlink bool) ([]byte, e
 }
 
 func openBoundRegular(path string, maximum int64, rejectSymlink bool) (*os.File, int64, error) {
-	info, err := os.Lstat(path)
+	info, err := os.Lstat(path) // #nosec G703 -- operator-selected registry or trust path is inspected for size, regular-file type and identity before use.
 	if err != nil {
 		return nil, 0, err
 	}
@@ -595,18 +595,16 @@ func openBoundRegular(path string, maximum int64, rejectSymlink bool) (*os.File,
 	if info.Size() > maximum {
 		return nil, 0, fmt.Errorf("registry object exceeds %d-byte limit", maximum)
 	}
-	file, err := os.Open(path)
+	file, err := os.Open(filepath.Clean(path)) // #nosec G703 -- operator-selected registry or trust path is inspected for size, regular-file type and identity before use.
 	if err != nil {
 		return nil, 0, err
 	}
 	opened, err := file.Stat()
 	if err != nil {
-		file.Close()
-		return nil, 0, err
+		return nil, 0, joinCloseError(err, file)
 	}
 	if !os.SameFile(info, opened) || !opened.Mode().IsRegular() {
-		file.Close()
-		return nil, 0, errors.New("registry object changed while it was opened")
+		return nil, 0, joinCloseError(errors.Join(err, errors.New("registry object changed while it was opened")), file)
 	}
 	return file, opened.Size(), nil
 }
@@ -1177,8 +1175,8 @@ func verifyReceiptAuthorization(stateDir string, receipt map[string]any, trusted
 	if hashBytes(policy) != policyHash || trustedPolicyHash != policyHash || !bytes.Equal(policy, trustedPolicy) {
 		return errors.New("persisted allowed-signers policy does not match the external operator trust root")
 	}
-	trustedInfo, trustedErr := os.Lstat(trustedPolicyPath)
-	persistedInfo, persistedErr := os.Lstat(policyPath)
+	trustedInfo, trustedErr := os.Lstat(trustedPolicyPath) // #nosec G703 -- operator-selected registry or trust path is inspected for size, regular-file type and identity before use.
+	persistedInfo, persistedErr := os.Lstat(policyPath)    // #nosec G703 -- operator-selected registry or trust path is inspected for size, regular-file type and identity before use.
 	if trustedErr != nil || persistedErr != nil || os.SameFile(trustedInfo, persistedInfo) {
 		return errors.New("persisted policy and external operator trust root must be independent files")
 	}
@@ -1291,24 +1289,19 @@ func immutableExecInput(prefix string, data []byte) (*os.File, error) {
 	}
 	path := file.Name()
 	if err := os.Remove(path); err != nil {
-		file.Close()
-		return nil, err
+		return nil, joinCloseError(err, file)
 	}
 	if err := file.Chmod(0o400); err != nil {
-		file.Close()
-		return nil, err
+		return nil, joinCloseError(err, file)
 	}
 	if _, err := file.Write(data); err != nil {
-		file.Close()
-		return nil, err
+		return nil, joinCloseError(err, file)
 	}
 	if err := file.Sync(); err != nil {
-		file.Close()
-		return nil, err
+		return nil, joinCloseError(err, file)
 	}
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		file.Close()
-		return nil, err
+		return nil, joinCloseError(err, file)
 	}
 	return file, nil
 }
@@ -1327,7 +1320,7 @@ func validateSSHKeygen() error {
 func runSSHKeygen(payload []byte, extraFiles []*os.File, arguments ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, sshKeygenPath, arguments...)
+	command := exec.CommandContext(ctx, sshKeygenPath, arguments...) // #nosec G204 -- executes fixed /usr/bin/ssh-keygen with separate arguments and descriptor-backed inputs.
 	command.ExtraFiles = extraFiles
 	command.Stdin = bytes.NewReader(payload)
 	var output boundedBuffer

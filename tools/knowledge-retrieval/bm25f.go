@@ -14,8 +14,8 @@ const (
 	legacyLexicalProfile     = "deterministic_raw_term_frequency@1.0.0"
 	bm25fLexicalProfile      = "deterministic_bm25f_fixed_point@1.0.0"
 	bm25fLexicalProfileV11   = "deterministic_bm25f_fixed_point@1.1.0"
-	bm25fTokenizerID         = "unicode_alnum_camel_acronym_conservative_plural@1.0.0"
-	bm25fTokenizerIDV11      = "unicode_alnum_camel_acronym_conservative_plural@1.1.0"
+	bm25fTokenizerID         = "unicode_alnum_camel_acronym_conservative_plural@1.0.0" // #nosec G101 -- Public versioned tokenizer algorithm identifier; no authentication authority.
+	bm25fTokenizerIDV11      = "unicode_alnum_camel_acronym_conservative_plural@1.1.0" // #nosec G101 -- Public versioned tokenizer algorithm identifier; no authentication authority.
 	bm25fScorerID            = "bm25f_k1_6_5_b_3_4_heading_2_cap_half_fixed_ppm@1.0.0"
 	bm25fIndexSchema         = "2.0.0"
 	bm25fIndexKind           = "deterministic_bm25f_lexical_inverted_index"

@@ -40,7 +40,7 @@ type stdioBroker struct {
 }
 
 func startStdioBroker(brokerPath string, arguments []string) (*stdioBroker, error) {
-	command := exec.Command(brokerPath, arguments...)
+	command := exec.Command(brokerPath, arguments...) // #nosec G204 -- acceptance harness executes the explicitly operator-selected broker binary with separate arguments.
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	stdin, err := command.StdinPipe()
 	if err != nil {

@@ -413,14 +413,13 @@ func readManifestDocument(filePath string) ([]byte, []QuarantineIssue) {
 	if info.Size() > maxManifestBytes {
 		return nil, []QuarantineIssue{issue("manifest_size_limit_exceeded", "<snapshot-manifest>", "snapshot manifest exceeds the fixed input limit")}
 	}
-	handle, err := os.Open(filePath)
+	handle, err := os.Open(filePath) // #nosec G304 -- Operator-selected manifest/review path passes no-symlink, regular-file, size and identity checks.
 	if err != nil {
 		return nil, []QuarantineIssue{issue("manifest_read_failed", "<snapshot-manifest>", "snapshot manifest could not be read")}
 	}
 	opened, err := handle.Stat()
 	if err != nil || !opened.Mode().IsRegular() || !os.SameFile(info, opened) {
-		handle.Close()
-		return nil, []QuarantineIssue{issue("manifest_replaced", "<snapshot-manifest>", "snapshot manifest identity changed before read")}
+		return nil, []QuarantineIssue{closeWithIssue(handle, "manifest_replaced", "<snapshot-manifest>", "snapshot manifest identity changed before read")}
 	}
 	data, readErr := io.ReadAll(io.LimitReader(handle, maxManifestBytes+1))
 	closeErr := handle.Close()
@@ -926,7 +925,7 @@ func verifySSHSIG(reviewer string, receipt, signature, policy []byte) []Quaranti
 	defer signatureFile.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, sshKeygenPath, "-Y", "verify", "-f", "/proc/self/fd/3", "-I", reviewer, "-n", reviewSignatureNamespace, "-s", "/proc/self/fd/4")
+	command := exec.CommandContext(ctx, sshKeygenPath, "-Y", "verify", "-f", "/proc/self/fd/3", "-I", reviewer, "-n", reviewSignatureNamespace, "-s", "/proc/self/fd/4") // #nosec G204 -- Fixed /usr/bin/ssh-keygen binary; isolated input descriptors and principal bypass a shell.
 	command.ExtraFiles = []*os.File{policyFile, signatureFile}
 	command.Stdin = bytes.NewReader(receipt)
 	command.Stdout = io.Discard
@@ -944,24 +943,19 @@ func immutableExecInput(prefix string, data []byte) (*os.File, error) {
 	}
 	name := file.Name()
 	if removeErr := os.Remove(name); removeErr != nil {
-		file.Close()
-		return nil, removeErr
+		return nil, closeWithError(removeErr, file)
 	}
 	if chmodErr := file.Chmod(0o400); chmodErr != nil {
-		file.Close()
-		return nil, chmodErr
+		return nil, closeWithError(chmodErr, file)
 	}
 	if _, writeErr := file.Write(data); writeErr != nil {
-		file.Close()
-		return nil, writeErr
+		return nil, closeWithError(writeErr, file)
 	}
 	if syncErr := file.Sync(); syncErr != nil {
-		file.Close()
-		return nil, syncErr
+		return nil, closeWithError(syncErr, file)
 	}
 	if _, seekErr := file.Seek(0, io.SeekStart); seekErr != nil {
-		file.Close()
-		return nil, seekErr
+		return nil, closeWithError(seekErr, file)
 	}
 	return file, nil
 }
@@ -1029,12 +1023,16 @@ func readSSHString(reader *bytes.Reader) ([]byte, error) {
 	if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
 		return nil, err
 	}
-	if uint64(length) > uint64(reader.Len()) {
+	if !sshLengthFits(length, reader.Len()) {
 		return nil, errors.New("SSH string exceeds envelope")
 	}
 	value := make([]byte, int(length))
 	_, err := io.ReadFull(reader, value)
 	return value, err
+}
+
+func sshLengthFits(length uint32, remaining int) bool {
+	return remaining >= 0 && int64(length) <= int64(remaining)
 }
 
 func readStableBoundedFile(filePath, label string, maxBytes int64) ([]byte, []QuarantineIssue) {
@@ -1045,14 +1043,13 @@ func readStableBoundedFile(filePath, label string, maxBytes int64) ([]byte, []Qu
 	if err != nil || !before.Mode().IsRegular() || before.Mode()&os.ModeSymlink != 0 || before.Size() > maxBytes {
 		return nil, []QuarantineIssue{issue("review_artifact_unavailable", label, "review artifact is not a bounded regular file")}
 	}
-	handle, err := os.Open(filePath)
+	handle, err := os.Open(filePath) // #nosec G304 -- Operator-selected manifest/review path passes no-symlink, regular-file, size and identity checks.
 	if err != nil {
 		return nil, []QuarantineIssue{issue("review_artifact_unavailable", label, "review artifact could not be opened")}
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return nil, []QuarantineIssue{issue("review_artifact_replaced", label, "review artifact identity changed before read")}
+		return nil, []QuarantineIssue{closeWithIssue(handle, "review_artifact_replaced", label, "review artifact identity changed before read")}
 	}
 	data, readErr := io.ReadAll(io.LimitReader(handle, maxBytes+1))
 	closeErr := handle.Close()
@@ -1121,14 +1118,13 @@ func readVerifiedRaw(rawRoot string, file ManifestFile, maxBytes int64) ([]byte,
 	if before.Size() != file.Size || before.Size() > maxBytes {
 		return nil, []QuarantineIssue{issue("raw_object_size_mismatch", file.RelativePath, "raw object size differs from the complete snapshot")}
 	}
-	handle, err := os.Open(objectPath)
+	handle, err := os.Open(objectPath) // #nosec G304 -- Operator-selected raw root plus digest-bound relative object path passes containment, symlink and identity checks.
 	if err != nil {
 		return nil, []QuarantineIssue{issue("raw_object_read_failed", file.RelativePath, "raw object could not be opened")}
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return nil, []QuarantineIssue{issue("raw_object_replaced", file.RelativePath, "raw object identity changed before read")}
+		return nil, []QuarantineIssue{closeWithIssue(handle, "raw_object_replaced", file.RelativePath, "raw object identity changed before read")}
 	}
 	data, readErr := io.ReadAll(io.LimitReader(handle, maxBytes+1))
 	closeErr := handle.Close()
@@ -1293,12 +1289,10 @@ func openSafeOutputRoot(storeRoot string) (*os.Root, fs.FileInfo, error) {
 	}
 	pathInfo, err := os.Lstat(abs)
 	if err != nil || pathInfo.Mode()&os.ModeSymlink != 0 || !pathInfo.IsDir() || !os.SameFile(opened, pathInfo) {
-		root.Close()
-		return nil, nil, errors.New("output store root path changed while opening")
+		return nil, nil, closeWithError(errors.New("output store root path changed while opening"), root)
 	}
 	if err := verifyRootStillBound(abs, root, opened); err != nil {
-		root.Close()
-		return nil, nil, err
+		return nil, nil, closeWithError(err, root)
 	}
 	return root, opened, nil
 }
@@ -1322,33 +1316,29 @@ func openAbsoluteRootNoSymlinks(directory string, mode fs.FileMode) (*os.Root, f
 		info, statErr := root.Lstat(part)
 		if errors.Is(statErr, fs.ErrNotExist) {
 			if err := root.Mkdir(part, mode); err != nil && !errors.Is(err, fs.ErrExist) {
-				root.Close()
-				return nil, nil, err
+				return nil, nil, closeWithError(err, root)
 			}
 			info, statErr = root.Lstat(part)
 		}
 		if statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-			root.Close()
-			return nil, nil, errors.New("output store path contains a symlink or non-directory component")
+			return nil, nil, closeWithError(errors.New("output store path contains a symlink or non-directory component"), root)
 		}
 		child, err := root.OpenRoot(part)
 		if err != nil {
-			root.Close()
-			return nil, nil, err
+			return nil, nil, closeWithError(err, root)
 		}
 		opened, err := child.Stat(".")
 		if err != nil || !os.SameFile(info, opened) {
-			child.Close()
-			root.Close()
-			return nil, nil, errors.New("output store component changed while opening")
+			return nil, nil, closeWithError(closeWithError(errors.New("output store component changed while opening"), child), root)
 		}
-		root.Close()
+		if err := root.Close(); err != nil {
+			return nil, nil, closeWithError(fmt.Errorf("close output store parent: %w", err), child)
+		}
 		root = child
 	}
 	opened, err := root.Stat(".")
 	if err != nil {
-		root.Close()
-		return nil, nil, err
+		return nil, nil, closeWithError(err, root)
 	}
 	return root, opened, nil
 }
@@ -1455,12 +1445,10 @@ func writeRootSyncedFile(root *os.Root, storeRoot string, rootInfo fs.FileInfo, 
 	}
 	written, writeErr := handle.Write(data)
 	if writeErr != nil || written != len(data) {
-		handle.Close()
-		return errors.New("staged object write was incomplete")
+		return closeWithError(errors.New("staged object write was incomplete"), handle)
 	}
 	if err := handle.Sync(); err != nil {
-		handle.Close()
-		return err
+		return closeWithError(err, handle)
 	}
 	if err := handle.Close(); err != nil {
 		return err
@@ -1488,8 +1476,7 @@ func verifyRootFileDigest(root *os.Root, relative, expectedDigest string, expect
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return errors.New("object identity changed before read")
+		return closeWithError(errors.New("object identity changed before read"), handle)
 	}
 	hash := sha256.New()
 	readLimit := expectedSize
@@ -1525,8 +1512,7 @@ func syncRootFile(root *os.Root, relative string) error {
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return errors.New("rooted sync target changed before sync")
+		return closeWithError(errors.New("rooted sync target changed before sync"), handle)
 	}
 	syncErr := handle.Sync()
 	closeErr := handle.Close()
@@ -1652,12 +1638,10 @@ func writeImmutableAtRoot(root *os.Root, storeRoot string, rootInfo fs.FileInfo,
 	defer root.Remove(tempRelative)
 	written, writeErr := temp.Write(data)
 	if writeErr != nil || written != len(data) {
-		temp.Close()
-		return errors.New("immutable staged object write was incomplete")
+		return closeWithError(errors.New("immutable staged object write was incomplete"), temp)
 	}
 	if err := temp.Sync(); err != nil {
-		temp.Close()
-		return err
+		return closeWithError(err, temp)
 	}
 	if err := temp.Close(); err != nil {
 		return err
@@ -1707,8 +1691,7 @@ func readRootStableFile(root *os.Root, relative string, maxBytes int64) ([]byte,
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return nil, errors.New("rooted object changed before read")
+		return nil, closeWithError(errors.New("rooted object changed before read"), handle)
 	}
 	data, readErr := io.ReadAll(io.LimitReader(handle, maxBytes+1))
 	closeErr := handle.Close()

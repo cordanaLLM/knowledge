@@ -46,13 +46,11 @@ func openOutputStore(storeRoot string) (*outputStore, error) {
 	}
 	opened, err := root.Stat(".")
 	if err != nil || !os.SameFile(before, opened) {
-		root.Close()
-		return nil, errors.New("output store root changed while opening")
+		return nil, closeWithError(errors.New("output store root changed while opening"), root)
 	}
 	store := &outputStore{path: abs, root: root, info: opened}
 	if err := store.verifyBinding(); err != nil {
-		root.Close()
-		return nil, err
+		return nil, closeWithError(err, root)
 	}
 	return store, nil
 }
@@ -92,7 +90,7 @@ func ensureOutputDirectoryTree(directory string) error {
 		current = filepath.Join(current, component)
 		info, statErr := os.Lstat(current)
 		if errors.Is(statErr, fs.ErrNotExist) {
-			if err := os.Mkdir(current, 0o755); err != nil && !errors.Is(err, fs.ErrExist) {
+			if err := os.Mkdir(current, 0o700); err != nil && !errors.Is(err, fs.ErrExist) {
 				return err
 			}
 			info, statErr = os.Lstat(current)
@@ -198,8 +196,7 @@ func (store *outputStore) readStable(relative string, maxBytes int64) ([]byte, e
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return nil, errors.New("rooted object changed before read")
+		return nil, closeWithError(errors.New("rooted object changed before read"), handle)
 	}
 	data, readErr := io.ReadAll(io.LimitReader(handle, maxBytes+1))
 	closeErr := handle.Close()
@@ -241,12 +238,10 @@ func (store *outputStore) writeImmutable(relative string, data []byte, mode fs.F
 	}
 	defer store.root.Remove(tempRelative)
 	if _, err := temp.Write(data); err != nil {
-		temp.Close()
-		return err
+		return closeWithError(err, temp)
 	}
 	if err := temp.Sync(); err != nil {
-		temp.Close()
-		return err
+		return closeWithError(err, temp)
 	}
 	if err := temp.Close(); err != nil {
 		return err
@@ -371,8 +366,7 @@ func (store *outputStore) verifyDigest(relative, expectedDigest string, expected
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return errors.New("rooted object changed before digest read")
+		return closeWithError(errors.New("rooted object changed before digest read"), handle)
 	}
 	hash := sha256.New()
 	size, readErr := io.Copy(hash, handle)

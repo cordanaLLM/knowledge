@@ -180,7 +180,11 @@ func parseEndpoint(raw string) (*url.URL, error) {
 var remoteEndpointHost = "gateway.example.com"
 
 func readCredential(path string) (string, error) {
-	return readCredentialForUID(path, uint32(os.Getuid()))
+	uid, err := credentialUID(os.Getuid())
+	if err != nil {
+		return "", err
+	}
+	return readCredentialForUID(path, uid)
 }
 
 func readCredentialForUID(path string, expectedUID uint32) (string, error) {

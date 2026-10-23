@@ -604,7 +604,7 @@ func privateSignerPublicDigest(keyPath, storeRoot string) (string, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, "/usr/bin/ssh-keygen", "-y", "-f", keyPath)
+	command := exec.CommandContext(ctx, "/usr/bin/ssh-keygen", "-y", "-f", keyPath) // #nosec G204 -- Fixed /usr/bin/ssh-keygen extracts the operator-selected signing key; no shell.
 	command.Stdin = nil
 	var public bytes.Buffer
 	command.Stdout = &public
@@ -643,7 +643,7 @@ func signStandingReceipt(keyPath string, receipt []byte) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	command := exec.CommandContext(ctx, "/usr/bin/ssh-keygen", "-Y", "sign", "-q", "-f", keyPath,
-		"-n", reviewSignatureNamespace, receiptPath)
+		"-n", reviewSignatureNamespace, receiptPath) // #nosec G204 -- Fixed /usr/bin/ssh-keygen signs the private receipt with the operator-selected key; no shell.
 	command.Stdin = nil
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard

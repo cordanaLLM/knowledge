@@ -201,12 +201,10 @@ func writeAtomicPointerAlias(stateRoot string, pointer RetrievalGenerationPointe
 	}
 	defer root.Remove(temporary)
 	if _, err := file.Write(data); err != nil {
-		file.Close()
-		return lifecycleFailure("pointer-alias-write-failed", "cannot write generation pointer alias")
+		return closeWithError(lifecycleFailure("pointer-alias-write-failed", "cannot write generation pointer alias"), file)
 	}
 	if err := file.Sync(); err != nil {
-		file.Close()
-		return lifecycleFailure("pointer-alias-write-failed", "cannot sync generation pointer alias")
+		return closeWithError(lifecycleFailure("pointer-alias-write-failed", "cannot sync generation pointer alias"), file)
 	}
 	if err := file.Close(); err != nil {
 		return lifecycleFailure("pointer-alias-write-failed", "cannot close generation pointer alias")

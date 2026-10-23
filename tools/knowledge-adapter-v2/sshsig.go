@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -38,10 +39,21 @@ func devPrivateKey() ed25519.PrivateKey {
 }
 
 func sshString(value []byte) []byte {
+	length, err := sshStringLength(len(value))
+	if err != nil {
+		panic(err)
+	}
 	out := make([]byte, 4+len(value))
-	binary.BigEndian.PutUint32(out, uint32(len(value)))
+	binary.BigEndian.PutUint32(out, length)
 	copy(out[4:], value)
 	return out
+}
+
+func sshStringLength(length int) (uint32, error) {
+	if length < 0 || length > math.MaxUint32 {
+		return 0, errors.New("SSH string exceeds uint32 length")
+	}
+	return uint32(length), nil
 }
 
 func ed25519PublicBlob(pub ed25519.PublicKey) []byte {
@@ -109,11 +121,11 @@ func signReviewReceipt(receiptBytes []byte, workDir string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	command := exec.CommandContext(ctx, sshKeygenPath, "-Y", "sign", "-q", "-f", keyPath,
-		"-n", reviewSignatureNamespace, receiptPath)
+		"-n", reviewSignatureNamespace, receiptPath) // #nosec G204 -- Fixed /usr/bin/ssh-keygen binary; paths are arguments without a shell.
 	if output, err := command.CombinedOutput(); err != nil || ctx.Err() != nil {
 		return nil, fmt.Errorf("ssh-keygen review signing failed: %v: %s", err, output)
 	}
-	signature, err := os.ReadFile(receiptPath + ".sig")
+	signature, err := os.ReadFile(receiptPath + ".sig") // #nosec G304 -- Signature is emitted by fixed ssh-keygen in the operator-selected private signing directory.
 	if err != nil {
 		return nil, fmt.Errorf("read detached review signature: %w", err)
 	}

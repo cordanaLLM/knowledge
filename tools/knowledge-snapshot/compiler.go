@@ -649,7 +649,7 @@ func hashInput(sourcePath string) (string, int64, error) {
 	if err != nil || !before.Mode().IsRegular() || before.Mode()&os.ModeSymlink != 0 {
 		return "", 0, errors.New("unsafe source file")
 	}
-	source, err := os.Open(sourcePath)
+	source, err := os.Open(sourcePath) // #nosec G304 -- Source is in the operator-selected mirror; regular-file and descriptor identity checks bracket reads.
 	if err != nil {
 		return "", 0, err
 	}
@@ -682,7 +682,7 @@ func stageAndHashInputRoot(sourcePath string, store *outputStore, stageRelative 
 	if err != nil || !before.Mode().IsRegular() || before.Mode()&os.ModeSymlink != 0 {
 		return "", 0, errors.New("unsafe source file")
 	}
-	source, err := os.Open(sourcePath)
+	source, err := os.Open(sourcePath) // #nosec G304 -- Source is in the operator-selected mirror; regular-file and descriptor identity checks bracket reads.
 	if err != nil {
 		return "", 0, err
 	}
@@ -737,7 +737,7 @@ func stageAndHashInputRoot(sourcePath string, store *outputStore, stageRelative 
 }
 
 func verifyFileDigest(filePath, expectedDigest string, expectedSize int64) error {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 -- Path identifies a compiler-created CAS object, checked against its declared size and SHA-256 digest.
 	if err != nil {
 		return err
 	}
