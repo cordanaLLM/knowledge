@@ -224,7 +224,7 @@ func infoSysStat(info os.FileInfo) (*syscall.Stat_t, bool) {
 }
 
 func runSSHKeygen(ctx context.Context, directory string, payload []byte, args ...string) ([]byte, error) {
-	command := exec.CommandContext(ctx, sshKeygenPath, args...)
+	command := exec.CommandContext(ctx, sshKeygenPath, args...) // #nosec G204 -- Fixed /usr/bin/ssh-keygen binary; arguments bypass a shell.
 	command.Dir = directory
 	command.Env = []string{"PATH=/usr/bin:/bin", "LANG=C", "LC_ALL=C", "HOME=/nonexistent"}
 	command.Stdin = bytes.NewReader(payload)
@@ -251,12 +251,10 @@ func readAndAuthorizeAllowedSignersBytes(policy []byte, actor, keyID string) ([]
 	name := temp.Name()
 	defer os.Remove(name)
 	if err := temp.Chmod(0o600); err != nil {
-		temp.Close()
-		return nil, err
+		return nil, closeWithError(err, temp)
 	}
 	if _, err := temp.Write(policy); err != nil {
-		temp.Close()
-		return nil, err
+		return nil, closeWithError(err, temp)
 	}
 	if err := temp.Close(); err != nil {
 		return nil, err
@@ -265,17 +263,15 @@ func readAndAuthorizeAllowedSignersBytes(policy []byte, actor, keyID string) ([]
 }
 
 func writePrivateVerificationFile(filePath string, data []byte) error {
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G304 -- Caller uses fixed artifact filenames under a new private verification directory; exclusive create rejects replacements.
 	if err != nil {
 		return errors.New("cannot create SSHSIG verification input")
 	}
 	if _, err := file.Write(data); err != nil {
-		file.Close()
-		return errors.New("cannot write SSHSIG verification input")
+		return closeWithError(errors.New("cannot write SSHSIG verification input"), file)
 	}
 	if err := file.Sync(); err != nil {
-		file.Close()
-		return errors.New("cannot sync SSHSIG verification input")
+		return closeWithError(errors.New("cannot sync SSHSIG verification input"), file)
 	}
 	if err := file.Close(); err != nil {
 		return errors.New("cannot close SSHSIG verification input")

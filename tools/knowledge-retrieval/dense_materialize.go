@@ -332,9 +332,7 @@ func embedDenseInputs(config DenseMaterializeConfig, inputs []string) ([][]float
 		if err != nil {
 			return nil, fmt.Errorf("embedding request failed: %w", err)
 		}
-		decoded := embeddingResponse{}
-		decodeErr := json.NewDecoder(response.Body).Decode(&decoded)
-		response.Body.Close()
+		decoded, decodeErr := decodeEmbeddingResponse(response.Body)
 		if response.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("embedding endpoint returned status %d", response.StatusCode)
 		}
