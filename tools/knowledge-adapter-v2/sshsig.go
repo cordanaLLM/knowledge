@@ -38,68 +38,124 @@ func devPrivateKey() ed25519.PrivateKey {
 	return ed25519.NewKeyFromSeed(devSeed())
 }
 
-func sshString(value []byte) []byte {
+func sshString(value []byte) ([]byte, error) {
 	length, err := sshStringLength(len(value))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	out := make([]byte, 4+len(value))
 	binary.BigEndian.PutUint32(out, length)
 	copy(out[4:], value)
-	return out
+	return out, nil
 }
 
-func sshStringLength(length int) (uint32, error) {
+var sshStringLength = defaultSSHStringLength
+
+func defaultSSHStringLength(length int) (uint32, error) {
 	if length < 0 || length > math.MaxUint32 {
 		return 0, errors.New("SSH string exceeds uint32 length")
 	}
 	return uint32(length), nil
 }
 
-func ed25519PublicBlob(pub ed25519.PublicKey) []byte {
-	var blob []byte
-	blob = append(blob, sshString([]byte("ssh-ed25519"))...)
-	blob = append(blob, sshString(pub)...)
-	return blob
+type sshField struct {
+	name  string
+	value []byte
+}
+
+func appendSSHFields(dst []byte, fields []sshField) ([]byte, error) {
+	for _, f := range fields {
+		encoded, err := sshString(f.value)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", f.name, err)
+		}
+		dst = append(dst, encoded...)
+	}
+	return dst, nil
+}
+
+func ed25519PublicBlob(pub ed25519.PublicKey) ([]byte, error) {
+	return appendSSHFields(nil, []sshField{
+		{"key type", []byte("ssh-ed25519")},
+		{"public key", pub},
+	})
 }
 
 // allowedSignersDocument returns the operator-trusted allowed_signers policy
 // authorizing exactly the deterministic dev reviewer with its Ed25519 key.
-func allowedSignersDocument() []byte {
+func allowedSignersDocument() ([]byte, error) {
 	pub := devPrivateKey().Public().(ed25519.PublicKey)
-	line := devReviewerPrincipal + " ssh-ed25519 " + base64.StdEncoding.EncodeToString(ed25519PublicBlob(pub)) + "\n"
-	return []byte(line)
+	pubBlob, err := ed25519PublicBlob(pub)
+	if err != nil {
+		return nil, fmt.Errorf("dev reviewer public blob: %w", err)
+	}
+	line := devReviewerPrincipal + " ssh-ed25519 " + base64.StdEncoding.EncodeToString(pubBlob) + "\n"
+	return []byte(line), nil
+}
+
+func marshalOpenSSHPrivateSection(pub ed25519.PublicKey, priv ed25519.PrivateKey, comment string) ([]byte, error) {
+	check := []byte{0x63, 0x61, 0x75, 0x64} // "caud"
+	private := append([]byte(nil), check...)
+	private = append(private, check...)
+	var err error
+	private, err = appendSSHFields(private, []sshField{
+		{"key type", []byte("ssh-ed25519")},
+		{"public key", pub},
+		{"private key", priv},
+		{"comment", []byte(comment)},
+	})
+	if err != nil {
+		return nil, err
+	}
+	for pad := byte(1); len(private)%8 != 0; pad++ {
+		private = append(private, pad)
+	}
+	return private, nil
+}
+
+func marshalOpenSSHKeyBlob(pubBlob, private []byte) ([]byte, error) {
+	blob := append([]byte(nil), []byte("openssh-key-v1\x00")...)
+	var err error
+	blob, err = appendSSHFields(blob, []sshField{
+		{"cipher name", []byte("none")},
+		{"kdf name", []byte("none")},
+		{"kdf options", []byte{}},
+	})
+	if err != nil {
+		return nil, err
+	}
+	count := make([]byte, 4)
+	binary.BigEndian.PutUint32(count, 1)
+	blob = append(blob, count...)
+	blob, err = appendSSHFields(blob, []sshField{
+		{"public key blob", pubBlob},
+		{"private key blob", private},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return blob, nil
 }
 
 // marshalOpenSSHPrivateKey encodes the deterministic dev key in the unencrypted
 // OpenSSH private-key format so /usr/bin/ssh-keygen can sign with it. The two
 // four-byte check words are fixed (they never affect the detached signature),
 // keeping the transient key file itself deterministic.
-func marshalOpenSSHPrivateKey(priv ed25519.PrivateKey, comment string) []byte {
+func marshalOpenSSHPrivateKey(priv ed25519.PrivateKey, comment string) ([]byte, error) {
 	pub := priv.Public().(ed25519.PublicKey)
-	pubBlob := ed25519PublicBlob(pub)
-	check := []byte{0x63, 0x61, 0x75, 0x64} // "caud"
-	var private []byte
-	private = append(private, check...)
-	private = append(private, check...)
-	private = append(private, sshString([]byte("ssh-ed25519"))...)
-	private = append(private, sshString(pub)...)
-	private = append(private, sshString(priv)...)
-	private = append(private, sshString([]byte(comment))...)
-	for pad := byte(1); len(private)%8 != 0; pad++ {
-		private = append(private, pad)
+	pubBlob, err := ed25519PublicBlob(pub)
+	if err != nil {
+		return nil, fmt.Errorf("public key blob: %w", err)
 	}
-	var blob []byte
-	blob = append(blob, []byte("openssh-key-v1\x00")...)
-	blob = append(blob, sshString([]byte("none"))...)
-	blob = append(blob, sshString([]byte("none"))...)
-	blob = append(blob, sshString([]byte{})...)
-	count := make([]byte, 4)
-	binary.BigEndian.PutUint32(count, 1)
-	blob = append(blob, count...)
-	blob = append(blob, sshString(pubBlob)...)
-	blob = append(blob, sshString(private)...)
-	return pem.EncodeToMemory(&pem.Block{Type: "OPENSSH PRIVATE KEY", Bytes: blob})
+	private, err := marshalOpenSSHPrivateSection(pub, priv, comment)
+	if err != nil {
+		return nil, fmt.Errorf("private section: %w", err)
+	}
+	blob, err := marshalOpenSSHKeyBlob(pubBlob, private)
+	if err != nil {
+		return nil, fmt.Errorf("key container: %w", err)
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "OPENSSH PRIVATE KEY", Bytes: blob}), nil
 }
 
 // signReviewReceipt writes the receipt and the transient dev key, produces a
@@ -110,7 +166,11 @@ func signReviewReceipt(receiptBytes []byte, workDir string) ([]byte, error) {
 		return nil, fmt.Errorf("prepare signing work dir: %w", err)
 	}
 	keyPath := filepath.Join(workDir, "dev-review-key")
-	if err := os.WriteFile(keyPath, marshalOpenSSHPrivateKey(devPrivateKey(), devReviewerPrincipal), 0o400); err != nil {
+	keyData, err := marshalOpenSSHPrivateKey(devPrivateKey(), devReviewerPrincipal)
+	if err != nil {
+		return nil, fmt.Errorf("marshal dev review key: %w", err)
+	}
+	if err := os.WriteFile(keyPath, keyData, 0o400); err != nil {
 		return nil, fmt.Errorf("write transient dev review key: %w", err)
 	}
 	defer os.Remove(keyPath)
