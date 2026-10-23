@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -47,7 +48,7 @@ func marshalDocument(value any) ([]byte, error) {
 
 func loadAcquisition(path string) (acquisitionDocument, error) {
 	var doc acquisitionDocument
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- Path is the operator-selected acquisition input or compiler-produced manifest path.
 	if err != nil {
 		return doc, fmt.Errorf("read acquisition document %s: %w", path, err)
 	}
@@ -170,14 +171,21 @@ func buildReceipt(specBytes []byte, proposal InventoryProposal) SourceSpecReview
 // layMirror materializes the reviewed files into a private mirror, reading each
 // blob from the content-addressed store and re-verifying its digest and size
 // against the reviewed (and therefore acquisition-bound) expectation.
+func validMirrorPath(relative string) bool {
+	return fs.ValidPath(relative) && relative != "."
+}
+
 func layMirror(mirrorRoot string, spec SourceSpec, casRoot string) error {
 	for _, file := range spec.Files {
+		if !validMirrorPath(file.RelativePath) {
+			return fmt.Errorf("invalid mirror relative path %q", file.RelativePath)
+		}
 		hexDigest := strings.TrimPrefix(file.SHA256, "sha256:")
-		if len(hexDigest) != 64 {
+		if decoded, err := hex.DecodeString(hexDigest); err != nil || len(decoded) != 32 {
 			return fmt.Errorf("malformed digest for %s", file.RelativePath)
 		}
 		blobPath := filepath.Join(casRoot, "sha256", hexDigest[:2], hexDigest)
-		data, err := os.ReadFile(blobPath)
+		data, err := os.ReadFile(blobPath) // #nosec G304 -- Operator-selected CAS root plus a validated SHA-256 hex digest, verified below.
 		if err != nil {
 			return fmt.Errorf("read CAS blob for %s: %w", file.RelativePath, err)
 		}
@@ -188,10 +196,10 @@ func layMirror(mirrorRoot string, spec SourceSpec, casRoot string) error {
 			return fmt.Errorf("CAS digest mismatch for %s", file.RelativePath)
 		}
 		destination := filepath.Join(mirrorRoot, filepath.FromSlash(file.RelativePath))
-		if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(destination), 0o700); err != nil {
 			return fmt.Errorf("create mirror directory for %s: %w", file.RelativePath, err)
 		}
-		if err := os.WriteFile(destination, data, 0o644); err != nil {
+		if err := os.WriteFile(destination, data, 0o600); err != nil { // #nosec G703 -- Operator-selected output root; suffix is validated relative path or SHA-256 hex digest.
 			return fmt.Errorf("write mirror file %s: %w", file.RelativePath, err)
 		}
 	}
@@ -244,7 +252,19 @@ func prepareBundle(cfg Config, target acquisitionTarget, receiptID, acquisitionP
 		return bundle, err
 	}
 
-	bundle = authorityBundle{
+	bundle = bundlePaths(root, target, spec, proposal)
+	if err := writeBundleFiles(bundle, specBytes, proposalBytes, receiptBytes, signature); err != nil {
+		return bundle, err
+	}
+	mirrorRoot := filepath.Join(bundle.mirrorBase, filepath.FromSlash(spec.MirrorPath))
+	if err := layMirror(mirrorRoot, spec, cfg.CASRoot); err != nil {
+		return bundle, err
+	}
+	return bundle, nil
+}
+
+func bundlePaths(root string, target acquisitionTarget, spec SourceSpec, proposal InventoryProposal) authorityBundle {
+	return authorityBundle{
 		target:             target,
 		spec:               spec,
 		proposal:           proposal,
@@ -257,6 +277,9 @@ func prepareBundle(cfg Config, target acquisitionTarget, receiptID, acquisitionP
 		snapshotStore:      filepath.Join(root, "snapshot-store"),
 		evidenceStore:      filepath.Join(root, "evidence-store"),
 	}
+}
+
+func writeBundleFiles(bundle authorityBundle, specBytes, proposalBytes, receiptBytes, signature []byte) error {
 	writes := []struct {
 		path string
 		data []byte
@@ -270,20 +293,16 @@ func prepareBundle(cfg Config, target acquisitionTarget, receiptID, acquisitionP
 	}
 	for _, write := range writes {
 		if err := os.WriteFile(write.path, write.data, write.mode); err != nil {
-			return bundle, fmt.Errorf("write %s: %w", filepath.Base(write.path), err)
+			return fmt.Errorf("write %s: %w", filepath.Base(write.path), err)
 		}
 	}
-	mirrorRoot := filepath.Join(bundle.mirrorBase, filepath.FromSlash(spec.MirrorPath))
-	if err := layMirror(mirrorRoot, spec, cfg.CASRoot); err != nil {
-		return bundle, err
-	}
-	return bundle, nil
+	return nil
 }
 
 func runTool(bin string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), toolTimeout)
 	defer cancel()
-	command := exec.CommandContext(ctx, bin, args...)
+	command := exec.CommandContext(ctx, bin, args...) // #nosec G204 -- Operator explicitly supplies the snapshot/evidence executable through CLI flags; arguments bypass a shell.
 	var stdout, stderr bytes.Buffer
 	command.Stdout = &stdout
 	command.Stderr = &stderr
@@ -350,7 +369,7 @@ func runEvidenceCompile(bin string, bundle authorityBundle, snapshotManifestPath
 
 func readSnapshotManifestHead(path string) (snapshotManifestHead, error) {
 	var head snapshotManifestHead
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- Path is the operator-selected acquisition input or compiler-produced manifest path.
 	if err != nil {
 		return head, fmt.Errorf("read snapshot manifest: %w", err)
 	}
@@ -366,7 +385,7 @@ func manifestHex(manifestID string) (string, error) {
 		return "", fmt.Errorf("malformed manifest id %q", manifestID)
 	}
 	hexDigest := manifestID[index+1:]
-	if len(hexDigest) != 64 {
+	if decoded, err := hex.DecodeString(hexDigest); err != nil || len(decoded) != 32 {
 		return "", fmt.Errorf("manifest id %q is not content-addressed", manifestID)
 	}
 	return hexDigest, nil
@@ -377,15 +396,15 @@ func copyRetained(sourcePath, destDir, manifestID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
+	if err := os.MkdirAll(destDir, 0o700); err != nil {
 		return "", fmt.Errorf("create retained-evidence directory: %w", err)
 	}
-	data, err := os.ReadFile(sourcePath)
+	data, err := os.ReadFile(sourcePath) // #nosec G304 -- Source path is emitted by the operator-selected snapshot/evidence compiler.
 	if err != nil {
 		return "", fmt.Errorf("read compiled manifest: %w", err)
 	}
 	destination := filepath.Join(destDir, hexDigest+".json")
-	if err := os.WriteFile(destination, data, 0o644); err != nil {
+	if err := os.WriteFile(destination, data, 0o600); err != nil { // #nosec G703 -- Operator-selected output root; suffix is validated relative path or SHA-256 hex digest.
 		return "", fmt.Errorf("write retained manifest: %w", err)
 	}
 	return destination, nil
@@ -432,14 +451,8 @@ func adaptAuthority(cfg Config, target acquisitionTarget, receiptID, acquisition
 // a reviewed source bundle and drives the frozen snapshot and evidence
 // compilers, returning one distinct snapshot and evidence manifest per target.
 func Adapt(cfg Config) ([]AuthorityResult, error) {
-	if strings.TrimSpace(cfg.SnapshotBin) == "" || strings.TrimSpace(cfg.EvidenceBin) == "" {
-		return nil, errors.New("snapshot and evidence compiler binaries are required")
-	}
-	if strings.TrimSpace(cfg.CASRoot) == "" {
-		return nil, errors.New("content-addressed source-blob root is required")
-	}
-	if strings.TrimSpace(cfg.WorkRoot) == "" {
-		return nil, errors.New("work root is required")
+	if err := validateAdapterConfig(cfg); err != nil {
+		return nil, err
 	}
 	receipt, err := loadAcquisition(cfg.ReceiptPath)
 	if err != nil {
@@ -472,6 +485,19 @@ func Adapt(cfg Config) ([]AuthorityResult, error) {
 		results = append(results, result)
 	}
 	return results, nil
+}
+
+func validateAdapterConfig(cfg Config) error {
+	if strings.TrimSpace(cfg.SnapshotBin) == "" || strings.TrimSpace(cfg.EvidenceBin) == "" {
+		return errors.New("snapshot and evidence compiler binaries are required")
+	}
+	if strings.TrimSpace(cfg.CASRoot) == "" {
+		return errors.New("content-addressed source-blob root is required")
+	}
+	if strings.TrimSpace(cfg.WorkRoot) == "" {
+		return errors.New("work root is required")
+	}
+	return nil
 }
 
 // crossCheckAcquisition confirms the receipt and inventory proposal describe the
