@@ -82,7 +82,7 @@ func verifyEvidenceBoundary(inputs verifierInputs, verifierPath, verifierHash st
 	// checked above. Re-opening the caller path for exec would leave a path
 	// replacement window between hashing and execution.
 	verifiedExecutable := filepath.Join(verifyStore, "knowledge-evidence")
-	if err := os.WriteFile(verifiedExecutable, verifierBytes, 0o500); err != nil {
+	if err := os.WriteFile(verifiedExecutable, verifierBytes, 0o500); err != nil { // #nosec G306 -- Owner execute is required to run the digest-pinned verifier; owner read and no group/world permissions.
 		return []QuarantineIssue{issue("evidence_verifier_workspace_failed", "evidence-verifier", "verified evidence executable could not be materialized in its isolated workspace")}
 	}
 	if copied, err := readStableFile(verifiedExecutable, "verified evidence executable", maxVerifierBytes); err != nil || digestBytes(copied) != verifierHash {
@@ -107,7 +107,7 @@ func verifyEvidenceBoundary(inputs verifierInputs, verifierPath, verifierHash st
 		"--max-spans", strconv.Itoa(limits.maxSpans),
 		"--max-output-bytes", strconv.FormatInt(limits.maxTotalBytes, 10),
 	}
-	command := exec.CommandContext(ctx, verifiedExecutable, args...)
+	command := exec.CommandContext(ctx, verifiedExecutable, args...) // #nosec G204 -- Executes isolated knowledge-evidence bytes verified against the operator-pinned digest; no shell.
 	command.Dir = verifyStore
 	command.Env = []string{"PATH=/usr/bin:/bin", "LANG=C", "LC_ALL=C", "HOME=/nonexistent"}
 	stdout := &cappedBuffer{limit: 1024 * 1024}

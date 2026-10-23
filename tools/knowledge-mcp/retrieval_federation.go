@@ -205,7 +205,7 @@ func (provider *retrievalProvider) loadRetrievalCatalog() (*retrievalFederationC
 	if err := validateDirectoryPathNoSymlinks(filepath.Dir(provider.catalog)); err != nil {
 		return nil, err
 	}
-	info, err := os.Lstat(provider.catalog)
+	info, err := os.Lstat(provider.catalog) // #nosec G703 -- catalog is the operator-selected absolute path; regular-file, symlink, permission and SHA-256 checks follow.
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Mode().Perm()&0o222 != 0 {
 		return nil, errors.New("catalog is not an immutable regular file")
 	}

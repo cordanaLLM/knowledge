@@ -161,11 +161,11 @@ func compileRegistryProjectionWithPublishHook(manifestPath, outputPath string, m
 		return projectionReceipt{}, fmt.Errorf("create private projection workspace: %w", err)
 	}
 	defer os.RemoveAll(privateDirectory)
-	if err := os.Chmod(privateDirectory, 0o700); err != nil {
+	if err := os.Chmod(privateDirectory, 0o700); err != nil { // #nosec G302 -- private workspace is a directory and requires owner traversal; no group or other access.
 		return projectionReceipt{}, fmt.Errorf("protect private projection workspace: %w", err)
 	}
 	temporaryPath := filepath.Join(privateDirectory, "projection.sqlite")
-	temporary, err := os.OpenFile(temporaryPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	temporary, err := os.OpenFile(temporaryPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G304 -- path is an operator-selected projection artifact or a child of the private projection workspace.
 	if err != nil {
 		return projectionReceipt{}, fmt.Errorf("create private projection database: %w", err)
 	}
@@ -605,18 +605,15 @@ func openRegistryProjection(path string, maximum int64) (*registryProjection, er
 	db.SetConnMaxLifetime(0)
 	projection := &registryProjection{db: db, path: path, receipt: receipt}
 	if err := projection.validate(); err != nil {
-		db.Close()
-		return nil, err
+		return nil, joinCloseError(err, db)
 	}
 	projectionHashAfter, projectionSizeAfter, err := hashBoundFile(path, maximum)
 	if err != nil || projectionHashAfter != projectionHash || projectionSizeAfter != projectionSize {
-		db.Close()
-		return nil, errors.New("projection changed while it was opened and validated")
+		return nil, joinCloseError(errors.Join(err, errors.New("projection changed while it was opened and validated")), db)
 	}
 	receiptRawAfter, err := readBoundRegular(path+projectionReceiptSuffix, maxControlObjectBytes, true)
 	if err != nil || !stringBytesEqual(receiptRawAfter, receiptRaw) {
-		db.Close()
-		return nil, errors.New("projection receipt changed while the projection was opened")
+		return nil, joinCloseError(errors.Join(err, errors.New("projection receipt changed while the projection was opened")), db)
 	}
 	return projection, nil
 }
@@ -650,6 +647,22 @@ func validateProjectionReceipt(receipt projectionReceipt) error {
 func (projection *registryProjection) validate() error {
 	ctx, cancel := context.WithTimeout(context.Background(), projectionOpenTimeout)
 	defer cancel()
+	for _, validate := range []func(context.Context) error{
+		projection.validateDatabaseIdentity,
+		projection.validateTableSet,
+		projection.validateSchemaObjects,
+		projection.validateCellAndRowBounds,
+		projection.validateMetadata,
+		projection.validateReceiptTableCounts,
+	} {
+		if err := validate(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (projection *registryProjection) validateDatabaseIdentity(ctx context.Context) error {
 	if _, err := projection.db.ExecContext(ctx, "PRAGMA query_only=ON"); err != nil {
 		return fmt.Errorf("force projection query-only mode: %w", err)
 	}
@@ -664,6 +677,10 @@ func (projection *registryProjection) validate() error {
 	if err := projection.db.QueryRowContext(ctx, "PRAGMA quick_check").Scan(&check); err != nil || check != "ok" {
 		return fmt.Errorf("projection integrity check failed: %s", check)
 	}
+	return nil
+}
+
+func (projection *registryProjection) validateTableSet(ctx context.Context) error {
 	rows, err := projection.db.QueryContext(ctx, `SELECT name FROM sqlite_schema
 WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if err != nil {
@@ -673,8 +690,7 @@ WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			rows.Close()
-			return err
+			return joinCloseError(err, rows)
 		}
 		tables = append(tables, name)
 	}
@@ -684,12 +700,10 @@ WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if strings.Join(tables, "\x00") != strings.Join(projectionTables, "\x00") {
 		return fmt.Errorf("projection table set is invalid: %v", tables)
 	}
-	if err := projection.validateSchemaObjects(ctx); err != nil {
-		return err
-	}
-	if err := projection.validateCellAndRowBounds(ctx); err != nil {
-		return err
-	}
+	return nil
+}
+
+func (projection *registryProjection) validateMetadata(ctx context.Context) error {
 	meta, err := projection.readMeta(ctx)
 	if err != nil {
 		return err
@@ -712,6 +726,10 @@ WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if err := json.Unmarshal([]byte(meta["source_size_bytes"]), &sourceSize); err != nil || sourceSize != projection.receipt.SourceSizeBytes {
 		return errors.New("projection source size binding is invalid")
 	}
+	return projection.validateMetadataValues(meta)
+}
+
+func (projection *registryProjection) validateMetadataValues(meta map[string]string) error {
 	if err := decodeProjectionMeta(meta["counts"], &projection.counts); err != nil {
 		return fmt.Errorf("decode projection counts: %w", err)
 	}
@@ -734,10 +752,20 @@ WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if err := validateReconciliationBounds(projection.reconcile); err != nil {
 		return fmt.Errorf("validate projection reconciliation: %w", err)
 	}
+	return nil
+}
+
+func (projection *registryProjection) validateReceiptTableCounts(ctx context.Context) error {
 	for table, expected := range projection.receipt.TableCounts {
+		if _, known := projectionColumns[table]; !known {
+			return fmt.Errorf("unknown projection table %q", table)
+		}
 		var count int
-		query := "SELECT COUNT(*) FROM " + table
-		if err := projection.db.QueryRowContext(ctx, query).Scan(&count); err != nil || count != expected {
+		query := "SELECT COUNT(*) FROM " + table // #nosec G202 -- table is checked against the fixed projectionColumns allowlist above.
+		if err := projection.db.QueryRowContext(ctx, query).Scan(&count); err != nil {
+			return fmt.Errorf("count projection table %s: %w", table, err)
+		}
+		if count != expected {
 			return fmt.Errorf("projection table count mismatch for %s", table)
 		}
 	}
@@ -754,18 +782,15 @@ WHERE type IN ('table','index') AND name NOT LIKE 'sqlite_%' ORDER BY type,name`
 	for rows.Next() {
 		var objectType, name, rawSQL string
 		if err := rows.Scan(&objectType, &name, &rawSQL); err != nil {
-			rows.Close()
-			return err
+			return joinCloseError(err, rows)
 		}
 		key := objectType + ":" + name
 		expected, exists := expectedProjectionSchemaSQL[key]
 		if !exists {
-			rows.Close()
-			return fmt.Errorf("unexpected projection schema object %s", key)
+			return joinCloseError(fmt.Errorf("unexpected projection schema object %s", key), rows)
 		}
 		if canonicalSQLiteSchemaSQL(rawSQL) != expected {
-			rows.Close()
-			return fmt.Errorf("projection schema SQL for %s differs from the exact versioned DDL", key)
+			return joinCloseError(fmt.Errorf("projection schema SQL for %s differs from the exact versioned DDL", key), rows)
 		}
 		seen[key] = struct{}{}
 	}
@@ -922,7 +947,7 @@ func hashBoundFile(path string, maximum int64) (string, int64, error) {
 	if err != nil || openedAfter.Size() != openedBefore.Size() || !openedAfter.ModTime().Equal(openedBefore.ModTime()) {
 		return "", 0, errors.New("file metadata changed while hashing")
 	}
-	pathAfter, err := os.Lstat(path)
+	pathAfter, err := os.Lstat(path) // #nosec G703 -- operator-selected projection path is inspected for symlinks and regular-file identity before use.
 	if err != nil || pathAfter.Mode()&os.ModeSymlink != 0 || !os.SameFile(openedBefore, pathAfter) {
 		return "", 0, errors.New("file path changed while hashing")
 	}
@@ -961,16 +986,14 @@ func openProjectionPublisher(outputPath string) (*projectionPublisher, error) {
 	}
 	opened, err := root.Stat(".")
 	if err != nil || !os.SameFile(before, opened) {
-		root.Close()
-		return nil, errors.New("projection parent changed while it was opened")
+		return nil, joinCloseError(errors.Join(err, errors.New("projection parent changed while it was opened")), root)
 	}
 	publisher := &projectionPublisher{
 		parentPath: parentPath, root: root, parentInfo: opened,
 		projectionName: projectionName, receiptName: projectionName + projectionReceiptSuffix,
 	}
 	if err := publisher.verifyBinding(); err != nil {
-		root.Close()
-		return nil, err
+		return nil, joinCloseError(err, root)
 	}
 	return publisher, nil
 }
@@ -1116,7 +1139,7 @@ func (publisher *projectionPublisher) stagePrivateFile(sourcePath, target, expec
 	if err := publisher.verifyBinding(); err != nil {
 		return rootedProjectionStage{}, err
 	}
-	source, err := os.Open(sourcePath)
+	source, err := os.Open(sourcePath) // #nosec G304 -- path is an operator-selected projection artifact or a child of the private projection workspace.
 	if err != nil {
 		return rootedProjectionStage{}, err
 	}
@@ -1135,9 +1158,8 @@ func (publisher *projectionPublisher) stagePrivateFile(sourcePath, target, expec
 	}
 	createdInfo, err := destination.Stat()
 	if err != nil || !createdInfo.Mode().IsRegular() {
-		destination.Close()
-		_ = publisher.root.Remove(name)
-		return rootedProjectionStage{}, errors.New("rooted projection stage identity is unavailable")
+		closeErr := joinCloseError(errors.New("rooted projection stage identity is unavailable"), destination)
+		return rootedProjectionStage{}, errors.Join(closeErr, publisher.root.Remove(name))
 	}
 	stage := rootedProjectionStage{name: name, hash: expectedHash, size: expectedSize, target: target, info: createdInfo}
 	hash := sha256.New()
@@ -1180,8 +1202,7 @@ func (publisher *projectionPublisher) targetMatches(name, expectedHash string, e
 	}
 	opened, err := file.Stat()
 	if err != nil || !os.SameFile(info, opened) {
-		file.Close()
-		return false, errors.New("immutable projection target changed before read")
+		return false, joinCloseError(errors.New("immutable projection target changed before read"), file)
 	}
 	digest := sha256.New()
 	size, readErr := io.Copy(digest, io.LimitReader(file, expectedSize+1))
@@ -1230,7 +1251,7 @@ func projectionRandomChild(prefix string) (string, error) {
 }
 
 func writePrivateSyncedFile(pathValue string, value []byte) error {
-	file, err := os.OpenFile(pathValue, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	file, err := os.OpenFile(pathValue, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G304 -- path is an operator-selected projection artifact or a child of the private projection workspace.
 	if err != nil {
 		return err
 	}
@@ -1259,7 +1280,7 @@ func validateDirectoryPathNoSymlinks(path string) error {
 			continue
 		}
 		current = filepath.Join(current, part)
-		info, err := os.Lstat(current)
+		info, err := os.Lstat(current) // #nosec G703 -- operator-selected projection path is inspected for symlinks and regular-file identity before use.
 		if err != nil {
 			return err
 		}
@@ -1274,7 +1295,7 @@ func validateDirectoryPathNoSymlinks(path string) error {
 }
 
 func requireReadOnlyRegular(path string) error {
-	info, err := os.Lstat(path)
+	info, err := os.Lstat(path) // #nosec G703 -- operator-selected projection path is inspected for symlinks and regular-file identity before use.
 	if err != nil {
 		return err
 	}
@@ -1288,7 +1309,7 @@ func requireReadOnlyRegular(path string) error {
 }
 
 func syncRegularFile(path string) error {
-	file, err := os.Open(path)
+	file, err := os.Open(path) // #nosec G304 -- path is an operator-selected projection artifact or a child of the private projection workspace.
 	if err != nil {
 		return err
 	}
@@ -1301,7 +1322,7 @@ func syncRegularFile(path string) error {
 }
 
 func syncDirectory(path string) error {
-	directory, err := os.Open(path)
+	directory, err := os.Open(path) // #nosec G304 -- path is an operator-selected projection artifact or a child of the private projection workspace.
 	if err != nil {
 		return err
 	}
@@ -1465,7 +1486,7 @@ func (projection *registryProjection) searchComponents(query, ecosystem, kind, l
 		return errorOutcome(stateBackendUnavailable, "count compact component projection: "+err.Error(), nil)
 	}
 	queryArguments := append(append([]any{}, arguments...), maxProjectionSearchRows+1)
-	rows, err := projection.db.QueryContext(ctx, "SELECT "+projectedComponentColumns+" FROM components WHERE "+clause+" ORDER BY component_id LIMIT ?", queryArguments...)
+	rows, err := projection.db.QueryContext(ctx, "SELECT "+projectedComponentColumns+" FROM components WHERE "+clause+" ORDER BY component_id LIMIT ?", queryArguments...) // #nosec G202 -- SQL structure is built only from fixed query fragments; all caller values use bound placeholders.
 	if err != nil {
 		return errorOutcome(stateBackendUnavailable, "query compact component projection: "+err.Error(), nil)
 	}
@@ -1775,7 +1796,7 @@ func (projection *registryProjection) relationRows(ctx context.Context, column, 
 		return nil, false, errors.New("invalid relation direction column")
 	}
 	query := `SELECT from_component_id,to_component_id,relationship,scope,optional,edge_count,
-evidence_occurrence_ids_json FROM relations WHERE ` + column + "=?"
+evidence_occurrence_ids_json FROM relations WHERE ` + column + "=?" // #nosec G202 -- SQL structure is built only from fixed query fragments; all caller values use bound placeholders.
 	arguments := []any{componentID}
 	if scope != "" {
 		query += " AND scope=? COLLATE NOCASE"
@@ -1878,7 +1899,7 @@ func (projection *registryProjection) gapEvidence(ctx context.Context, component
 	start, _ := pageBounds(total, offset, limit)
 	queryArguments := append(append([]any{}, arguments...), limit, start)
 	rows, err := projection.db.QueryContext(ctx, `SELECT gap_id,gap_type,component_id,component_version_id,
-source_id,message,evidence_json FROM gaps WHERE `+clause+` ORDER BY gap_id LIMIT ? OFFSET ?`, queryArguments...)
+source_id,message,evidence_json FROM gaps WHERE `+clause+` ORDER BY gap_id LIMIT ? OFFSET ?`, queryArguments...) // #nosec G202 -- SQL structure is built only from fixed query fragments; all caller values use bound placeholders.
 	if err != nil {
 		return nil, 0, 0, err
 	}

@@ -74,7 +74,7 @@ func runGitCommandWithTimeout(root string, outputLimit int, timeout time.Duratio
 	commandArguments = append(commandArguments, arguments...)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	command := exec.CommandContext(ctx, gitExecutablePath, commandArguments...)
+	command := exec.CommandContext(ctx, gitExecutablePath, commandArguments...) // #nosec G204 -- executes fixed /usr/bin/git with a separate argument vector and validated binary identity.
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	command.Cancel = func() error {
 		if command.Process == nil {

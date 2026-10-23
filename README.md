@@ -108,7 +108,7 @@ Run unit tests directly in each module:
 (cd tools/knowledge-retrieval && go test -v -run 'Test(BM25|Dense|Current|Hybrid|Lifecycle|Paired|Situating|FineSpan)' ./...)
 ```
 
-*Note on conformance and integration tests*: Certain tests in `tools/knowledge-registry/p1-src03-acquisition-runner` and `tools/knowledge-retrieval` depend on shared monorepo schemas (`knowledge/registry/schemas/`) and test vectors (`testdata/canonical-json/v1/vectors.json`). Neither is part of this repository yet, so those tests fail here.
+*Note on conformance and integration tests*: Tests in `tools/knowledge-registry/p1-src03-acquisition-runner` and `tools/knowledge-retrieval` that depend on shared registry schemas (`knowledge/registry/schemas/`) and acceptance data (`knowledge/registry/acceptance/p1-src-03/`) read them from the directory named by the `KNOWLEDGE_DATA_ROOT` environment variable. When `KNOWLEDGE_DATA_ROOT` is unset or empty, these tests skip with the fixed prefix `knowledge data root absent:` followed by the test purpose. To run with shared data, set `KNOWLEDGE_DATA_ROOT` to a directory containing the `knowledge/registry` tree (e.g. `KNOWLEDGE_DATA_ROOT=/path/to/data go test ./...`). If `KNOWLEDGE_DATA_ROOT` is set but lacks the expected files, the tests fail with the missing file path. Tests depending on test vectors (`testdata/canonical-json/v1/vectors.json`) fail when that file is absent from the repository.
 
 ### 2. Python Tests
 

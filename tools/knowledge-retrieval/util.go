@@ -107,14 +107,13 @@ func readStableFile(filePath, label string, maxBytes int64) ([]byte, error) {
 	if err != nil || !before.Mode().IsRegular() || before.Mode()&os.ModeSymlink != 0 || before.Size() > maxBytes {
 		return nil, fmt.Errorf("%s is not a bounded regular file", label)
 	}
-	handle, err := os.Open(filePath)
+	handle, err := os.Open(filePath) // #nosec G304 -- Operator-selected input passes component, regular-file, size and identity checks.
 	if err != nil {
 		return nil, fmt.Errorf("%s cannot be opened", label)
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return nil, fmt.Errorf("%s changed before read", label)
+		return nil, closeWithError(fmt.Errorf("%s changed before read", label), handle)
 	}
 	data, readErr := io.ReadAll(io.LimitReader(handle, maxBytes+1))
 	closeErr := handle.Close()
@@ -238,12 +237,10 @@ func writeImmutableObject(storeRoot, relative string, data []byte) error {
 	}
 	defer root.Remove(tempRelative)
 	if _, err := temp.Write(data); err != nil {
-		temp.Close()
-		return err
+		return closeWithError(err, temp)
 	}
 	if err := temp.Sync(); err != nil {
-		temp.Close()
-		return err
+		return closeWithError(err, temp)
 	}
 	if err := temp.Close(); err != nil {
 		return err
@@ -300,12 +297,10 @@ func openSafeOutputRoot(storeRoot string) (*os.Root, fs.FileInfo, error) {
 	}
 	opened, err := root.Stat(".")
 	if err != nil || !os.SameFile(before, opened) {
-		root.Close()
-		return nil, nil, errors.New("output store root changed while opening")
+		return nil, nil, closeWithError(errors.New("output store root changed while opening"), root)
 	}
 	if err := verifyRootStillBound(abs, root, opened); err != nil {
-		root.Close()
-		return nil, nil, err
+		return nil, nil, closeWithError(err, root)
 	}
 	return root, opened, nil
 }
@@ -328,7 +323,7 @@ func ensureAbsoluteDirectoryTree(directory string) error {
 		current = filepath.Join(current, part)
 		info, statErr := os.Lstat(current)
 		if errors.Is(statErr, fs.ErrNotExist) {
-			if err := os.Mkdir(current, 0o755); err != nil && !errors.Is(err, fs.ErrExist) {
+			if err := os.Mkdir(current, 0o700); err != nil && !errors.Is(err, fs.ErrExist) {
 				return err
 			}
 			info, statErr = os.Lstat(current)
@@ -407,8 +402,7 @@ func readRootStableFile(root *os.Root, relative string, maxBytes int64) ([]byte,
 	}
 	opened, err := handle.Stat()
 	if err != nil || !os.SameFile(before, opened) {
-		handle.Close()
-		return nil, errors.New("rooted object changed before read")
+		return nil, closeWithError(errors.New("rooted object changed before read"), handle)
 	}
 	data, readErr := io.ReadAll(io.LimitReader(handle, maxBytes+1))
 	closeErr := handle.Close()

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -708,31 +709,39 @@ func mustNormalize(result callResult, ctx *caseContext) []byte {
 
 // copySuiteTree clones the suite directory so tamper checks never touch the
 // frozen fixtures themselves.
-func copySuiteTree(suiteDir string) (string, error) {
-	target, err := os.MkdirTemp("", "mcp01-tampered-suite-")
+func copySuiteTree(suiteDir string) (target string, err error) {
+	source, err := os.OpenRoot(suiteDir)
+	if err != nil {
+		return "", fmt.Errorf("open suite root: %w", err)
+	}
+	defer func() { err = errors.Join(err, source.Close()) }()
+	target, err = os.MkdirTemp("", "mcp01-tampered-suite-")
 	if err != nil {
 		return "", err
 	}
-	err = filepath.Walk(suiteDir, func(path string, info os.FileInfo, walkErr error) error {
+	destination, err := os.OpenRoot(target)
+	if err != nil {
+		return "", errors.Join(err, os.RemoveAll(target))
+	}
+	defer func() { err = errors.Join(err, destination.Close()) }()
+	err = fs.WalkDir(source.FS(), ".", func(name string, item fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		relative, err := filepath.Rel(suiteDir, path)
-		if err != nil {
-			return err
+		if item.IsDir() {
+			return destination.MkdirAll(name, 0o700)
 		}
-		destination := filepath.Join(target, relative)
-		if info.IsDir() {
-			return os.MkdirAll(destination, 0o755)
+		if !item.Type().IsRegular() {
+			return fmt.Errorf("suite entry %q is not regular", name)
 		}
-		raw, err := os.ReadFile(path)
-		if err != nil {
-			return err
+		raw, readErr := source.ReadFile(name)
+		if readErr != nil {
+			return readErr
 		}
-		return os.WriteFile(destination, raw, 0o644)
+		return destination.WriteFile(name, raw, 0o600)
 	})
 	if err != nil {
-		return "", err
+		return "", errors.Join(err, os.RemoveAll(target))
 	}
 	return target, nil
 }

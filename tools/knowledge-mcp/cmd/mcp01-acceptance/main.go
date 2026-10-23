@@ -135,7 +135,7 @@ func runHermeticSuite(suiteDir, brokerPath, outDir string, freeze *suiteFreeze) 
 		verdict := runHermeticCase(suiteDir, brokerPath, freeze, ws, frozenCase)
 		if verdict.transcriptBytes != nil {
 			target := filepath.Join(outDir, frozenCase.CaseID+".transcript.json")
-			if err := os.WriteFile(target, verdict.transcriptBytes, 0o644); err != nil {
+			if err := os.WriteFile(target, verdict.transcriptBytes, 0o600); err != nil {
 				return nil, err
 			}
 		}
@@ -146,7 +146,7 @@ func runHermeticSuite(suiteDir, brokerPath, outDir string, freeze *suiteFreeze) 
 }
 
 func runClusterSuite(endpoint, tokenFile, outDir string, freeze *suiteFreeze) (*suiteReport, error) {
-	rawToken, err := os.ReadFile(tokenFile)
+	rawToken, err := os.ReadFile(tokenFile) // #nosec G304 -- token path is the operator-selected acceptance credential.
 	if err != nil {
 		return nil, fmt.Errorf("read cluster bearer token file: %w", err)
 	}
@@ -163,7 +163,7 @@ func runClusterSuite(endpoint, tokenFile, outDir string, freeze *suiteFreeze) (*
 		transcriptBytes := runClusterCase(client, freeze, frozenCase, &verdict)
 		if transcriptBytes != nil {
 			target := filepath.Join(outDir, frozenCase.CaseID+".transcript.json")
-			if err := os.WriteFile(target, transcriptBytes, 0o644); err != nil {
+			if err := os.WriteFile(target, transcriptBytes, 0o600); err != nil {
 				return nil, err
 			}
 			digest := sha256.Sum256(transcriptBytes)
@@ -223,7 +223,7 @@ func run() int {
 	if err := verifyFixturePins(resolvedSuite, freeze); err != nil {
 		return fail(err)
 	}
-	if err := os.MkdirAll(*outDir, 0o755); err != nil {
+	if err := os.MkdirAll(*outDir, 0o700); err != nil {
 		return fail(err)
 	}
 	var report *suiteReport

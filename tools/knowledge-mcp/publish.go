@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -376,7 +377,7 @@ func describePayloadFile(source, bundlePath string) (publishBundleEntry, error) 
 }
 
 func hashRegularFile(source string) (string, int64, error) {
-	file, err := os.Open(source)
+	file, err := os.Open(source) // #nosec G304 -- path comes from the operator publish configuration or the validated bundle entry and private staging directory.
 	if err != nil {
 		return "", 0, err
 	}
@@ -401,62 +402,58 @@ func writePublishBundle(output string, manifest publishBundleManifest, sources m
 		return "", fmt.Errorf("validate bundle output parent: %w", err)
 	}
 	temporary := output + ".partial"
-	file, err := os.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0o600)
+	file, err := os.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0o600) // #nosec G304 -- operator-selected output parent was validated above; exclusive creation rejects an existing symlink.
 	if err != nil {
 		return "", fmt.Errorf("create bundle: %w", err)
 	}
 	digest := sha256.New()
 	writer := tar.NewWriter(io.MultiWriter(file, digest))
+	if err := writeBundleEntries(writer, manifest, sources); err != nil {
+		return "", removeFileError(joinCloseError(err, file), temporary)
+	}
+	if err := writer.Close(); err != nil {
+		return "", removeFileError(joinCloseError(err, file), temporary)
+	}
+	if err := file.Sync(); err != nil {
+		return "", removeFileError(joinCloseError(err, file), temporary)
+	}
+	if err := file.Close(); err != nil {
+		return "", removeFileError(err, temporary)
+	}
+	if err := os.Chmod(temporary, publishFileMode); err != nil {
+		return "", removeFileError(err, temporary)
+	}
+	if err := os.Rename(temporary, output); err != nil {
+		return "", removeFileError(err, temporary)
+	}
+	return hex.EncodeToString(digest.Sum(nil)), nil
+}
 
+func writeBundleEntries(writer *tar.Writer, manifest publishBundleManifest, sources map[string]string) error {
 	encoded, err := json.Marshal(manifest)
 	if err != nil {
-		file.Close()
-		os.Remove(temporary)
-		return "", err
+		return err
 	}
 	encoded = append(encoded, '\n')
-	failure := func(cause error) (string, error) {
-		file.Close()
-		os.Remove(temporary)
-		return "", cause
-	}
 	if err := writeBundleHeader(writer, publishManifestName, int64(len(encoded))); err != nil {
-		return failure(err)
+		return err
 	}
 	if _, err := writer.Write(encoded); err != nil {
-		return failure(err)
+		return err
 	}
 	for _, entry := range manifest.Entries {
 		source, ok := sources[entry.Path]
 		if !ok {
-			return failure(fmt.Errorf("bundle entry %q has no source file", entry.Path))
+			return fmt.Errorf("bundle entry %q has no source file", entry.Path)
 		}
 		if err := writeBundleHeader(writer, entry.Path, entry.Size); err != nil {
-			return failure(err)
+			return err
 		}
 		if err := copyBundlePayload(writer, source, entry); err != nil {
-			return failure(err)
+			return err
 		}
 	}
-	if err := writer.Close(); err != nil {
-		return failure(err)
-	}
-	if err := file.Sync(); err != nil {
-		return failure(err)
-	}
-	if err := file.Close(); err != nil {
-		os.Remove(temporary)
-		return "", err
-	}
-	if err := os.Chmod(temporary, publishFileMode); err != nil {
-		os.Remove(temporary)
-		return "", err
-	}
-	if err := os.Rename(temporary, output); err != nil {
-		os.Remove(temporary)
-		return "", err
-	}
-	return hex.EncodeToString(digest.Sum(nil)), nil
+	return nil
 }
 
 func writeBundleHeader(writer *tar.Writer, name string, size int64) error {
@@ -472,7 +469,7 @@ func writeBundleHeader(writer *tar.Writer, name string, size int64) error {
 }
 
 func copyBundlePayload(writer io.Writer, source string, entry publishBundleEntry) error {
-	file, err := os.Open(source)
+	file, err := os.Open(source) // #nosec G304 -- path comes from the operator publish configuration or the validated bundle entry and private staging directory.
 	if err != nil {
 		return err
 	}
@@ -500,50 +497,79 @@ func materializePublishBundle(configuration config) (status *publishStatus, err 
 		return nil, fmt.Errorf("resolve publish target: %w", err)
 	}
 	staging := filepath.Join(target, publishStagingDirName)
-	defer os.RemoveAll(staging)
-	defer func() {
-		if err != nil {
-			clearPublishedTrees(target)
-		}
-		writePublishStatus(target, status, err)
-	}()
-
-	if err = os.MkdirAll(target, publishDirMode); err != nil {
-		return nil, fmt.Errorf("create publish target: %w", err)
-	}
-	clearPublishedTrees(target)
-	if err = os.RemoveAll(staging); err != nil {
+	defer func() { err = finishPublishMaterialization(target, staging, status, err, os.RemoveAll) }()
+	if err := preparePublishTarget(target, staging); err != nil {
 		return nil, err
 	}
-	if err = os.MkdirAll(staging, publishDirMode); err != nil {
+	manifest, digest, err := fetchAndExtractPublishBundle(configuration, staging)
+	if err != nil {
 		return nil, err
 	}
+	payload := filepath.Join(staging, "payload")
+	snapshot, err := verifyPublishPayload(configuration, payload, manifest)
+	if err != nil {
+		return nil, err
+	}
+	status = &publishStatus{
+		SchemaVersion: publishBundleSchemaVersion,
+		RecordKind:    "knowledge_store_publication_status", State: "published",
+		BundleSHA256: digest, PointerID: snapshot.pointer.PointerID,
+		CurrentManifestID: snapshot.pointer.CurrentManifestID, PublisherVersion: serverVersion,
+	}
+	if err := placePublishPayload(configuration, payload, target, status); err != nil {
+		return nil, err
+	}
+	return status, nil
+}
 
+func finishPublishMaterialization(target, staging string, status *publishStatus, cause error, cleanup func(string) error) error {
+	cause = errors.Join(cause, cleanup(staging))
+	if cause != nil {
+		cause = errors.Join(cause, clearPublishedTrees(target))
+	}
+	if err := writePublishStatus(target, status, cause); err != nil {
+		return errors.Join(cause, err, clearPublishedTrees(target))
+	}
+	return cause
+}
+
+func preparePublishTarget(target, staging string) error {
+	if err := os.MkdirAll(target, publishDirMode); err != nil {
+		return fmt.Errorf("create publish target: %w", err)
+	}
+	if err := clearPublishedTrees(target); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(staging); err != nil {
+		return err
+	}
+	return os.MkdirAll(staging, publishDirMode)
+}
+
+func fetchAndExtractPublishBundle(configuration config, staging string) (*publishBundleManifest, string, error) {
 	bundlePath := filepath.Join(staging, "bundle.tar")
-	var digest string
-	if digest, err = fetchPublishBundle(configuration.publishMaterialize, bundlePath); err != nil {
-		return nil, fmt.Errorf("fetch bundle: %w", err)
+	digest, err := fetchPublishBundle(configuration.publishMaterialize, bundlePath)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetch bundle: %w", err)
 	}
 	if digest != configuration.publishSHA256 {
-		return nil, fmt.Errorf("bundle SHA-256 %s does not match the operator pin %s", digest, configuration.publishSHA256)
+		return nil, "", fmt.Errorf("bundle SHA-256 %s does not match the operator pin %s", digest, configuration.publishSHA256)
 	}
-
-	payload := filepath.Join(staging, "payload")
-	var manifest *publishBundleManifest
-	if manifest, err = extractPublishBundle(bundlePath, payload); err != nil {
-		return nil, fmt.Errorf("extract bundle: %w", err)
+	manifest, err := extractPublishBundle(bundlePath, filepath.Join(staging, "payload"))
+	if err != nil {
+		return nil, "", fmt.Errorf("extract bundle: %w", err)
 	}
+	return manifest, digest, nil
+}
 
+func verifyPublishPayload(configuration config, payload string, manifest *publishBundleManifest) (*registrySnapshot, error) {
 	trustDirectory := filepath.Join(payload, publishTrustDirName)
-	if err = materializeTrustRoot(configuration.publishTrustSource, trustDirectory); err != nil {
+	if err := materializeTrustRoot(configuration.publishTrustSource, trustDirectory); err != nil {
 		return nil, fmt.Errorf("materialize trust root: %w", err)
 	}
-	trustPath := filepath.Join(trustDirectory, publishTrustFileName)
-
-	stagedStore := filepath.Join(payload, publishStateDirName)
 	snapshot := newRegistryProvider(config{
-		stateDirectory:  stagedStore,
-		allowedSigners:  trustPath,
+		stateDirectory:  filepath.Join(payload, publishStateDirName),
+		allowedSigners:  filepath.Join(trustDirectory, publishTrustFileName),
 		maxRegistrySize: configuration.maxRegistrySize,
 	}).snapshot()
 	if snapshot.state != stateOK || snapshot.pointer == nil {
@@ -552,30 +578,31 @@ func materializePublishBundle(configuration config) (status *publishStatus, err 
 	if snapshot.pointer.PointerID != manifest.PointerID || snapshot.pointer.CurrentManifestID != manifest.CurrentManifestID {
 		return nil, errors.New("staged generation store does not match the bundle manifest binding")
 	}
+	return snapshot, nil
+}
 
-	status = &publishStatus{
-		SchemaVersion:     publishBundleSchemaVersion,
-		RecordKind:        "knowledge_store_publication_status",
-		State:             "published",
-		BundleSHA256:      digest,
-		PointerID:         snapshot.pointer.PointerID,
-		CurrentManifestID: snapshot.pointer.CurrentManifestID,
-		PublisherVersion:  serverVersion,
+func placePublishPayload(configuration config, payload, target string, status *publishStatus) error {
+	for _, name := range []string{publishStateDirName, publishTrustDirName} {
+		if err := os.Rename(filepath.Join(payload, name), filepath.Join(target, name)); err != nil {
+			return fmt.Errorf("place %s: %w", name, err)
+		}
 	}
-	if err = os.Rename(stagedStore, filepath.Join(target, publishStateDirName)); err != nil {
-		return nil, fmt.Errorf("place generation store: %w", err)
-	}
-	if err = os.Rename(trustDirectory, filepath.Join(target, publishTrustDirName)); err != nil {
-		return nil, fmt.Errorf("place trust root: %w", err)
-	}
-
 	stagedRetrieval := filepath.Join(payload, publishRetrievalDirName)
 	if _, statErr := os.Stat(stagedRetrieval); statErr == nil {
-		status.RetrievalState = placeRetrievalTree(configuration, stagedRetrieval, target)
+		state, err := placeRetrievalTree(configuration, stagedRetrieval, target)
+		if err != nil {
+			return fmt.Errorf("place retrieval payload: %w", err)
+		}
+		status.RetrievalState = state
+	} else if !errors.Is(statErr, os.ErrNotExist) {
+		return fmt.Errorf("inspect staged retrieval tree: %w", statErr)
 	}
-	sealDirectoryTree(filepath.Join(target, publishStateDirName))
-	sealDirectoryTree(filepath.Join(target, publishTrustDirName))
-	return status, nil
+	for _, name := range []string{publishStateDirName, publishTrustDirName} {
+		if err := sealDirectoryTree(filepath.Join(target, name)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // placeRetrievalTree moves the retrieval tree to its final path and only then
@@ -583,31 +610,38 @@ func materializePublishBundle(configuration config) (status *publishStatus, err 
 // in-cluster paths that do not exist under staging. A catalog that fails to
 // load takes the whole retrieval tree back out, leaving the broker to report a
 // typed degraded federation rather than serving unpinned lanes.
-func placeRetrievalTree(configuration config, stagedRetrieval, target string) string {
+func placeRetrievalTree(configuration config, stagedRetrieval, target string) (string, error) {
 	final := filepath.Join(target, publishRetrievalDirName)
 	if err := os.Rename(stagedRetrieval, final); err != nil {
-		return "unavailable: place retrieval tree: " + err.Error()
+		return "", fmt.Errorf("place retrieval tree: %w", err)
 	}
-	sealDirectoryTree(final)
+	if err := sealDirectoryTree(final); err != nil {
+		return "", fmt.Errorf("seal retrieval tree: %w", err)
+	}
 	if configuration.retrievalCatalog == "" || configuration.retrievalCatalogHash == "" {
-		return "published_unverified: no catalog pin was configured"
+		return "published_unverified: no catalog pin was configured", nil
 	}
 	provider := newRetrievalProvider(config{
 		retrievalCatalog:     configuration.retrievalCatalog,
 		retrievalCatalogHash: configuration.retrievalCatalogHash,
 	})
 	if _, err := provider.loadRetrievalCatalog(); err != nil {
-		os.RemoveAll(final)
-		return "unavailable: catalog verification failed: " + err.Error()
+		if cleanupErr := errors.Join(unsealDirectoryTree(final), os.RemoveAll(final)); cleanupErr != nil {
+			return "", errors.Join(fmt.Errorf("catalog verification failed: %w", err),
+				fmt.Errorf("remove rejected retrieval tree: %w", cleanupErr))
+		}
+		return "unavailable: catalog verification failed: " + err.Error(), nil
 	}
-	return "published"
+	return "published", nil
 }
 
-func clearPublishedTrees(target string) {
+func clearPublishedTrees(target string) error {
+	var failure error
 	for _, name := range []string{publishStateDirName, publishTrustDirName, publishRetrievalDirName} {
-		unsealDirectoryTree(filepath.Join(target, name))
-		os.RemoveAll(filepath.Join(target, name))
+		path := filepath.Join(target, name)
+		failure = errors.Join(failure, unsealDirectoryTree(path), os.RemoveAll(path))
 	}
+	return failure
 }
 
 // fetchPublishBundle accepts a local path or an http(s) URL. The transport is
@@ -622,7 +656,7 @@ func fetchPublishBundle(source, destination string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	file, err := os.Open(absolute)
+	file, err := os.Open(absolute) // #nosec G304 -- path comes from the operator publish configuration or the validated bundle entry and private staging directory.
 	if err != nil {
 		return "", err
 	}
@@ -644,7 +678,7 @@ func downloadPublishBundle(source, destination string) (string, error) {
 }
 
 func streamToFile(reader io.Reader, destination string) (string, error) {
-	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0o600)
+	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0o600) // #nosec G304 -- path comes from the operator publish configuration or the validated bundle entry and private staging directory.
 	if err != nil {
 		return "", err
 	}
@@ -664,7 +698,7 @@ func streamToFile(reader io.Reader, destination string) (string, error) {
 // under state/ and retrieval/ are accepted; trust/ is refused outright so a
 // bundle can never supply the trust root that authorises it.
 func extractPublishBundle(bundlePath, payload string) (*publishBundleManifest, error) {
-	file, err := os.Open(bundlePath)
+	file, err := os.Open(bundlePath) // #nosec G304 -- path comes from the operator publish configuration or the validated bundle entry and private staging directory.
 	if err != nil {
 		return nil, err
 	}
@@ -774,7 +808,7 @@ func extractBundleEntry(reader io.Reader, payload string, entry publishBundleEnt
 	if err := os.MkdirAll(filepath.Dir(destination), publishDirMode); err != nil {
 		return err
 	}
-	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G304 -- path comes from the operator publish configuration or the validated bundle entry and private staging directory.
 	if err != nil {
 		return err
 	}
@@ -825,7 +859,7 @@ func materializeTrustRoot(source, directory string) error {
 	if strings.TrimSpace(source) == "" {
 		return errors.New("no allowed-signers trust source was configured")
 	}
-	raw, err := os.ReadFile(source)
+	raw, err := os.ReadFile(source) // #nosec G304 -- path comes from the operator publish configuration or the validated bundle entry and private staging directory.
 	if err != nil {
 		return err
 	}
@@ -839,41 +873,68 @@ func materializeTrustRoot(source, directory string) error {
 		return err
 	}
 	destination := filepath.Join(directory, publishTrustFileName)
-	if err := os.WriteFile(destination, raw, 0o600); err != nil {
+	if err := os.WriteFile(destination, raw, 0o600); err != nil { // #nosec G703 -- destination is the fixed trust-file child of the private extraction directory.
 		return err
 	}
 	return os.Chmod(destination, publishFileMode)
 }
 
-func sealDirectoryTree(root string) {
-	directories := make([]string, 0, 8)
-	_ = filepath.WalkDir(root, func(current string, item os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return nil
-		}
-		if item.IsDir() {
-			directories = append(directories, current)
-		}
+func sealDirectoryTree(root string) error {
+	return setDirectoryTreeMode(root, publishSealedDirMode)
+}
+
+func unsealDirectoryTree(root string) error {
+	return setDirectoryTreeMode(root, publishDirMode)
+}
+
+// Directory modes are changed through open descriptors: Root.Chmod on Unix
+// can race with a symlink replacement, while File.Chmod keeps the opened inode.
+func setDirectoryTreeMode(path string, mode os.FileMode) (err error) {
+	root, err := openBoundDirectoryRoot(path)
+	if errors.Is(err, os.ErrNotExist) {
 		return nil
-	})
-	for index := len(directories) - 1; index >= 0; index-- {
-		_ = os.Chmod(directories[index], publishSealedDirMode)
 	}
-}
-
-func unsealDirectoryTree(root string) {
-	_ = filepath.WalkDir(root, func(current string, item os.DirEntry, walkErr error) error {
+	if err != nil {
+		return fmt.Errorf("open directory tree: %w", err)
+	}
+	defer func() { err = errors.Join(err, root.Close()) }()
+	directories := make([]string, 0, 8)
+	err = fs.WalkDir(root.FS(), ".", func(name string, item fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
-			return nil
+			return walkErr
 		}
 		if item.IsDir() {
-			_ = os.Chmod(current, publishDirMode)
+			directories = append(directories, name)
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	for index := len(directories) - 1; index >= 0; index-- {
+		if err := chmodRootedDirectory(root, directories[index], mode); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func writePublishStatus(target string, status *publishStatus, failure error) {
+func chmodRootedDirectory(root *os.Root, name string, mode os.FileMode) error {
+	file, err := root.Open(name)
+	if err != nil {
+		return fmt.Errorf("open rooted directory: %w", err)
+	}
+	info, err := file.Stat()
+	if err == nil && !info.IsDir() {
+		err = errors.New("rooted mode target is not a directory")
+	}
+	if err == nil {
+		err = file.Chmod(mode)
+	}
+	return joinCloseError(err, file)
+}
+
+func writePublishStatus(target string, status *publishStatus, failure error) error {
 	record := status
 	if failure != nil || record == nil {
 		record = &publishStatus{
@@ -888,7 +949,7 @@ func writePublishStatus(target string, status *publishStatus, failure error) {
 	}
 	raw, err := json.Marshal(record)
 	if err != nil {
-		return
+		return err
 	}
-	_ = os.WriteFile(filepath.Join(target, publishStatusFileName), append(raw, '\n'), 0o644)
+	return os.WriteFile(filepath.Join(target, publishStatusFileName), append(raw, '\n'), 0o600) // #nosec G304 -- fixed status-file child of the operator-configured publication target.
 }

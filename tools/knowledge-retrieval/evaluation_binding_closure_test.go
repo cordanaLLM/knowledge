@@ -10,18 +10,18 @@ import (
 )
 
 const (
-	closureAcceptanceDir  = "../../knowledge/registry/acceptance/p1-src-03"
-	closureEvaluationTime = "2026-07-20T13:00:00Z"
-	frozenRequirementsID  = "retrieval-binding-requirements:sha256:8c58e1e9cfe2cef672f104cfc88ab0229ba666e829d94188cda277b6a4e87f49"
+	closureAcceptanceRelDir = "knowledge/registry/acceptance/p1-src-03"
+	closureEvaluationTime   = "2026-07-20T13:00:00Z"
+	frozenRequirementsID    = "retrieval-binding-requirements:sha256:8c58e1e9cfe2cef672f104cfc88ab0229ba666e829d94188cda277b6a4e87f49"
 )
 
 // closureFixture copies the committed admitted-artifacts envelope and its nine
 // referenced manifests into a writable temp tree so negative cases can tamper
 // freely without touching the committed evidence.
-func closureFixture(t *testing.T) (admittedPath, root string) {
+func closureFixture(t *testing.T, acceptanceDir string) (admittedPath, root string) {
 	t.Helper()
 	root = t.TempDir()
-	raw, err := os.ReadFile(filepath.Join(closureAcceptanceDir, "admitted-artifacts.json"))
+	raw, err := os.ReadFile(filepath.Join(acceptanceDir, "admitted-artifacts.json"))
 	if err != nil {
 		t.Fatalf("read admitted-artifacts: %v", err)
 	}
@@ -31,7 +31,7 @@ func closureFixture(t *testing.T) (admittedPath, root string) {
 	}
 	for _, a := range env.Authorities {
 		for _, art := range []MultidomainBindingClosureAdmittedArtifact{a.SnapshotManifest, a.EvidenceManifest, a.AdmissionPolicy} {
-			b, err := os.ReadFile(filepath.Join(closureAcceptanceDir, art.Path))
+			b, err := os.ReadFile(filepath.Join(acceptanceDir, art.Path))
 			if err != nil {
 				t.Fatalf("read artifact %s: %v", art.Path, err)
 			}
@@ -85,41 +85,59 @@ func rewriteAdmitted(t *testing.T, admittedPath string, mutate func(*Multidomain
 	}
 }
 
+func matchesExpectedGapCounts(m MultidomainBindingClosureManifest) bool {
+	return m.ClosedGapCount == 9 && m.BlockingGapCount == 29 && m.GapCount == 38
+}
+
+func isBlockedState(m MultidomainBindingClosureManifest) bool {
+	return m.State == "blocked" && !m.Promotable && !m.ExecutionAuthorized && !m.Ready
+}
+
+func hasAnyCapability(c MultidomainBindingClosureCapabilities) bool {
+	return c.RetrievalAuthorized || c.EvaluationAuthorized || c.SigningAuthorized ||
+		c.GenerationAuthorized || c.PointerWriteAuthorized || c.ServingAuthorized
+}
+
+func verifyClosureGapsAndCapabilities(t *testing.T, m MultidomainBindingClosureManifest) {
+	t.Helper()
+	if !matchesExpectedGapCounts(m) {
+		t.Fatalf("gaps = %d closed / %d blocking / %d total; want 9/29/38",
+			m.ClosedGapCount, m.BlockingGapCount, m.GapCount)
+	}
+	closed := 0
+	for _, g := range m.Gaps {
+		if !g.Blocking {
+			closed++
+			if g.Scope != "source_authority" {
+				t.Fatalf("non-blocking gap has scope %q; only source_authority may close", g.Scope)
+			}
+		}
+	}
+	if closed != 9 {
+		t.Fatalf("%d gaps flipped non-blocking; want exactly 9", closed)
+	}
+	if !isBlockedState(m) {
+		t.Fatalf("state=%q promotable=%v execution=%v ready=%v; want blocked/false/false/false",
+			m.State, m.Promotable, m.ExecutionAuthorized, m.Ready)
+	}
+	if hasAnyCapability(m.Capabilities) {
+		t.Fatalf("closure granted an authority capability: %+v", m.Capabilities)
+	}
+}
+
 func TestMultidomainBindingClosureDeterministicNineClose(t *testing.T) {
-	admitted, _ := closureFixture(t)
+	dataRoot := knowledgeDataRoot(t, "multidomain binding closure deterministic nine close",
+		filepath.Join(closureAcceptanceRelDir, "admitted-artifacts.json"))
+	acceptanceDir := filepath.Join(dataRoot, filepath.FromSlash(closureAcceptanceRelDir))
+	admitted, _ := closureFixture(t, acceptanceDir)
 	freezeBefore, err := os.ReadFile(multidomainFreezePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	first, firstPath := materializeClosure(t, admitted)
+	verifyClosureGapsAndCapabilities(t, first)
 
-	if first.ClosedGapCount != 9 || first.BlockingGapCount != 29 || first.GapCount != 38 {
-		t.Fatalf("gaps = %d closed / %d blocking / %d total; want 9/29/38",
-			first.ClosedGapCount, first.BlockingGapCount, first.GapCount)
-	}
-	closed := 0
-	for _, g := range first.Gaps {
-		if g.Blocking {
-			continue
-		}
-		closed++
-		if g.Scope != "source_authority" {
-			t.Fatalf("non-blocking gap has scope %q; only source_authority may close", g.Scope)
-		}
-	}
-	if closed != 9 {
-		t.Fatalf("%d gaps flipped non-blocking; want exactly 9", closed)
-	}
-	if first.State != "blocked" || first.Promotable || first.ExecutionAuthorized || first.Ready {
-		t.Fatalf("state=%q promotable=%v execution=%v ready=%v; want blocked/false/false/false",
-			first.State, first.Promotable, first.ExecutionAuthorized, first.Ready)
-	}
-	c := first.Capabilities
-	if c.RetrievalAuthorized || c.EvaluationAuthorized || c.SigningAuthorized ||
-		c.GenerationAuthorized || c.PointerWriteAuthorized || c.ServingAuthorized {
-		t.Fatalf("closure granted an authority capability: %+v", c)
-	}
 	if !strings.HasPrefix(first.ManifestID, "retrieval-binding-requirements:sha256:") {
 		t.Fatalf("manifest id %q lacks the expected prefix", first.ManifestID)
 	}
@@ -152,9 +170,13 @@ func TestMultidomainBindingClosureDeterministicNineClose(t *testing.T) {
 }
 
 func TestMultidomainBindingClosureFailsClosed(t *testing.T) {
+	dataRoot := knowledgeDataRoot(t, "multidomain binding closure fails closed",
+		filepath.Join(closureAcceptanceRelDir, "admitted-artifacts.json"))
+	acceptanceDir := filepath.Join(dataRoot, filepath.FromSlash(closureAcceptanceRelDir))
+
 	// wrong frozen requirements target
 	t.Run("wrong_requirements_target", func(t *testing.T) {
-		admitted, _ := closureFixture(t)
+		admitted, _ := closureFixture(t, acceptanceDir)
 		rewriteAdmitted(t, admitted, func(e *MultidomainBindingClosureAdmittedArtifacts) {
 			e.RequirementsManifestID = "retrieval-binding-requirements:sha256:" + strings.Repeat("0", 64)
 		})
@@ -166,7 +188,7 @@ func TestMultidomainBindingClosureFailsClosed(t *testing.T) {
 
 	// only two authorities: cannot collapse to fewer than the three frozen authorities
 	t.Run("collapsed_authorities", func(t *testing.T) {
-		admitted, _ := closureFixture(t)
+		admitted, _ := closureFixture(t, acceptanceDir)
 		rewriteAdmitted(t, admitted, func(e *MultidomainBindingClosureAdmittedArtifacts) {
 			e.Authorities = e.Authorities[:2]
 		})
@@ -176,9 +198,13 @@ func TestMultidomainBindingClosureFailsClosed(t *testing.T) {
 		}
 	})
 
+	testClosureFailsClosedPinsAndMutations(t, acceptanceDir)
+}
+
+func testClosureFailsClosedPinsAndMutations(t *testing.T, acceptanceDir string) {
 	// bad freeze caller pin (missing sha256: prefix)
 	t.Run("invalid_freeze_pin", func(t *testing.T) {
-		admitted, _ := closureFixture(t)
+		admitted, _ := closureFixture(t, acceptanceDir)
 		bare := strings.TrimPrefix(p1MultidomainFreezeDocumentSHA256, "sha256:")
 		if _, _, err := MaterializeMultidomainBindingClosure(multidomainCorePath, multidomainFreezePath,
 			bare, multidomainFixtureRoot, t.TempDir(), admitted, closureEvaluationTime, ""); err == nil {
@@ -188,7 +214,7 @@ func TestMultidomainBindingClosureFailsClosed(t *testing.T) {
 
 	// a mutated admitted manifest no longer matches its pinned document sha256
 	t.Run("mutated_admitted_artifact_bytes", func(t *testing.T) {
-		admitted, root := closureFixture(t)
+		admitted, root := closureFixture(t, acceptanceDir)
 		var env MultidomainBindingClosureAdmittedArtifacts
 		raw, _ := os.ReadFile(admitted)
 		if err := json.Unmarshal(raw, &env); err != nil {
@@ -201,10 +227,8 @@ func TestMultidomainBindingClosureFailsClosed(t *testing.T) {
 		}
 		manifest, _, err := MaterializeMultidomainBindingClosure(multidomainCorePath, multidomainFreezePath,
 			p1MultidomainFreezeDocumentSHA256, multidomainFixtureRoot, t.TempDir(), admitted, closureEvaluationTime, "")
-		// Fail-closed: a mismatched document sha256 must not close its gap — either
-		// the run errors or the tampered authority's gap stays blocking (closed < 9).
 		if err == nil && manifest.ClosedGapCount >= 9 {
-			t.Fatalf("tampered artifact still closed all 9 gaps (closed=%d); a mismatched document sha256 must leave its gap blocking", manifest.ClosedGapCount)
+			t.Fatalf("tampered artifact still closed all 9 gaps (closed=%d)", manifest.ClosedGapCount)
 		}
 	})
 }

@@ -96,7 +96,7 @@ func readPlanRequest(path string) (planRequest, error) {
 	if info.IsDir() || info.Size() > maxPlanRequestBytes {
 		return planRequest{}, errors.New("plan request is a directory or exceeds the byte bound")
 	}
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) // #nosec G304 -- --spec is an explicit local CLI input path, bounded and strictly parsed below.
 	if err != nil {
 		return planRequest{}, err
 	}
@@ -119,13 +119,12 @@ func readPlanRequest(path string) (planRequest, error) {
 // writeExclusive writes the plan document to a new file only; it never
 // overwrites an existing path.
 func writeExclusive(path string, document []byte) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G304 -- --output is an explicit local CLI destination; O_EXCL prevents overwriting an existing path.
 	if err != nil {
 		return err
 	}
 	if _, err := file.Write(document); err != nil {
-		_ = file.Close()
-		return err
+		return errors.Join(err, file.Close())
 	}
 	return file.Close()
 }

@@ -255,7 +255,7 @@ func readBoundedRegular(filePath string, limit int64) ([]byte, error) {
 	if err != nil || !before.Mode().IsRegular() || before.Mode()&os.ModeSymlink != 0 || before.Size() > limit {
 		return nil, errors.New("unsafe or oversized review artifact")
 	}
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 -- Operator-selected review artifact passes component, regular-file, size and identity checks.
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +394,7 @@ func verifySSHSIGNamespace(document, signature, allowedSigners []byte, principal
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	command := exec.CommandContext(ctx, sshKeygenPath, "-Y", "verify", "-f", policyPath, "-I", principal,
-		"-n", namespace, "-s", signaturePath)
+		"-n", namespace, "-s", signaturePath) // #nosec G204 -- Fixed /usr/bin/ssh-keygen verifier; private artifact paths and principal bypass a shell.
 	command.Stdin = bytes.NewReader(document)
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard

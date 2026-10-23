@@ -723,7 +723,7 @@ func runEvaluateRetrieval(args []string) {
 }
 
 func mustOutputFileHash(filePath string) string {
-	data, err := os.ReadFile(filePath)
+	data, err := os.ReadFile(filePath) // #nosec G304 -- Path comes from this command's generated output manifest/report result under the operator-selected store.
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
