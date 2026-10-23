@@ -23,7 +23,6 @@ const (
 	maxRetrievalOutputBytes     = 1 << 20
 	maxRetrievalDiagnosticBytes = 64 << 10
 	retrievalCommandTimeout     = 15 * time.Second
-	retrievalExecutableFDPath   = "/proc/self/fd/3"
 )
 
 type retrievalProvider struct {
@@ -495,22 +494,20 @@ func (provider *retrievalProvider) openValidatedExecutable() (*os.File, error) {
 	if err := validateDirectoryPathNoSymlinks(filepath.Dir(provider.executable)); err != nil {
 		return nil, err
 	}
-	info, err := os.Lstat(provider.executable)
+	info, err := os.Lstat(provider.executable) // #nosec G703 -- operator-pinned executable is absolute, has symlink-free parents, and is checked for immutable inode identity and SHA-256.
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Mode().Perm()&0o111 == 0 || info.Mode().Perm()&0o222 != 0 {
 		return nil, errors.New("executable is not an immutable executable regular file")
 	}
-	file, err := os.Open(provider.executable)
+	file, err := os.Open(provider.executable) // #nosec G703 -- operator-pinned executable is absolute, has symlink-free parents, and is checked for immutable inode identity and SHA-256.
 	if err != nil {
 		return nil, err
 	}
 	opened, err := file.Stat()
 	if err != nil || !os.SameFile(info, opened) {
-		file.Close()
-		return nil, errors.New("executable path changed while it was opened")
+		return nil, joinCloseError(errors.Join(err, errors.New("executable path changed while it was opened")), file)
 	}
 	if err := provider.validateOpenedExecutable(file); err != nil {
-		file.Close()
-		return nil, err
+		return nil, joinCloseError(err, file)
 	}
 	return file, nil
 }
@@ -538,7 +535,7 @@ func (provider *retrievalProvider) validateOpenedExecutable(file *os.File) error
 	if hex.EncodeToString(digest.Sum(nil)) != provider.executableSHA256 {
 		return errors.New("executable SHA-256 does not match the operator pin")
 	}
-	pathInfo, err := os.Lstat(provider.executable)
+	pathInfo, err := os.Lstat(provider.executable) // #nosec G703 -- operator-pinned executable is absolute, has symlink-free parents, and is checked for immutable inode identity and SHA-256.
 	if err != nil || pathInfo.Mode()&os.ModeSymlink != 0 || !os.SameFile(after, pathInfo) {
 		return errors.New("configured executable path no longer names the opened inode")
 	}
@@ -547,7 +544,8 @@ func (provider *retrievalProvider) validateOpenedExecutable(file *os.File) error
 }
 
 func (provider *retrievalProvider) retrievalCommand(ctx context.Context, executableFile *os.File, arguments []string) *exec.Cmd {
-	command := exec.CommandContext(ctx, retrievalExecutableFDPath, arguments...)
+	command := exec.CommandContext(ctx, "/proc/self/fd/3") // #nosec G702 -- fixed descriptor path executes the immutable SHA-256-pinned binary; caller text remains separate argument values.
+	command.Args = append(command.Args, arguments...)
 	command.Dir = "/"
 	command.ExtraFiles = []*os.File{executableFile}
 	command.Env = []string{"LANG=C", "LC_ALL=C", "TZ=UTC", "PATH=/usr/bin:/bin"}

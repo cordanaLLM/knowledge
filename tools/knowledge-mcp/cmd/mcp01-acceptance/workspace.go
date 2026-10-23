@@ -59,7 +59,7 @@ var frozenCaseClasses = []string{
 }
 
 func loadSuite(suiteDir string) (*suiteFreeze, error) {
-	raw, err := os.ReadFile(filepath.Join(suiteDir, "suite-freeze.json"))
+	raw, err := os.ReadFile(filepath.Join(suiteDir, "suite-freeze.json")) // #nosec G304 -- path names the operator-selected acceptance suite or its private temporary workspace.
 	if err != nil {
 		return nil, fmt.Errorf("read suite freeze: %w", err)
 	}
@@ -91,7 +91,7 @@ func loadSuite(suiteDir string) (*suiteFreeze, error) {
 }
 
 func hashFile(path string) (string, int64, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) // #nosec G304 -- path names the operator-selected acceptance suite or its private temporary workspace.
 	if err != nil {
 		return "", 0, err
 	}
@@ -181,19 +181,19 @@ func materializeWorkspace(suiteDir string, freeze *suiteFreeze) (*workspace, err
 	tokenDigest := sha256.Sum256([]byte(freeze.SuiteID + "/" + freeze.Revision))
 	ws.token = hex.EncodeToString(tokenDigest[:])
 	for _, directory := range []string{"repo", "bin", "policies", "registry", "catalogs", "http"} {
-		if err := os.MkdirAll(filepath.Join(root, directory), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Join(root, directory), 0o700); err != nil {
 			return nil, err
 		}
 	}
 	for _, lane := range []string{"solo", "alpha", "beta", "gamma"} {
 		for _, leaf := range []string{"store", "state", "evidence"} {
-			if err := os.MkdirAll(filepath.Join(root, "lanes", lane, leaf), 0o755); err != nil {
+			if err := os.MkdirAll(filepath.Join(root, "lanes", lane, leaf), 0o700); err != nil {
 				return nil, err
 			}
 		}
 	}
 	ws.scriptPath = filepath.Join(root, "bin", "lane-child.sh")
-	if err := ws.copyFixture("fixtures/lane-child.sh", ws.scriptPath, 0o555); err != nil {
+	if err := ws.copyFixture("fixtures/lane-child.sh", ws.scriptPath, 0o500); err != nil {
 		return nil, err
 	}
 	ws.scriptPin, _, err = hashFile(ws.scriptPath)
@@ -204,7 +204,7 @@ func materializeWorkspace(suiteDir string, freeze *suiteFreeze) (*workspace, err
 		"alpha", "beta", "deny-retrieval", "deny-deleted", "deny-tombstone", "deny-absent",
 	} {
 		target := filepath.Join(root, "policies", policy+".json")
-		if err := ws.copyFixture("fixtures/policies/"+policy+".json", target, 0o444); err != nil {
+		if err := ws.copyFixture("fixtures/policies/"+policy+".json", target, 0o400); err != nil {
 			return nil, err
 		}
 		pin, _, err := hashFile(target)
@@ -214,7 +214,7 @@ func materializeWorkspace(suiteDir string, freeze *suiteFreeze) (*workspace, err
 		ws.policyPins[policy] = pin
 	}
 	registryTarget := filepath.Join(root, "registry", "candidate-manifest.json")
-	if err := ws.copyFixture("fixtures/registry/candidate-manifest.json", registryTarget, 0o644); err != nil {
+	if err := ws.copyFixture("fixtures/registry/candidate-manifest.json", registryTarget, 0o600); err != nil {
 		return nil, err
 	}
 	if err := os.WriteFile(filepath.Join(root, "http", "token"), []byte(ws.token+"\n"), 0o600); err != nil {
@@ -244,7 +244,7 @@ func (ws *workspace) copyFixture(relative, target string, mode os.FileMode) erro
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(target, raw, mode); err != nil {
+	if err := os.WriteFile(target, raw, mode); err != nil { // #nosec G703 -- destination belongs to the private acceptance workspace built from fixed fixture recipes.
 		return err
 	}
 	// An earlier run may have left a read-only file; enforce the exact mode.
@@ -271,10 +271,10 @@ func (ws *workspace) buildCatalog(name string, laneIDs []string, policies map[st
 		return err
 	}
 	path := filepath.Join(ws.root, "catalogs", name+".json")
-	if err := os.WriteFile(path, encoded, 0o644); err != nil {
+	if err := os.WriteFile(path, encoded, 0o600); err != nil {
 		return err
 	}
-	if err := os.Chmod(path, 0o444); err != nil {
+	if err := os.Chmod(path, 0o400); err != nil {
 		return err
 	}
 	digest := sha256.Sum256(encoded)
@@ -289,7 +289,7 @@ func (ws *workspace) restoreCatalog(name string) error {
 	if !exists {
 		return fmt.Errorf("unknown catalog %q", name)
 	}
-	if err := os.Chmod(catalog.path, 0o644); err != nil {
+	if err := os.Chmod(catalog.path, 0o600); err != nil {
 		return err
 	}
 	previous := catalog.sha256
@@ -310,13 +310,13 @@ func (ws *workspace) restoreCatalog(name string) error {
 // installResponse places one frozen response fixture as a lane's next
 // signed-current reply.
 func (ws *workspace) installResponse(lane, responseFixture string) error {
-	return ws.copyFixture("fixtures/responses/"+responseFixture, filepath.Join(ws.root, "lanes", lane, "store", "response.json"), 0o644)
+	return ws.copyFixture("fixtures/responses/"+responseFixture, filepath.Join(ws.root, "lanes", lane, "store", "response.json"), 0o600)
 }
 
 func (ws *workspace) setBlock(lane string, blocked bool) error {
 	marker := filepath.Join(ws.root, "lanes", lane, "store", "block")
 	if blocked {
-		return os.WriteFile(marker, []byte("block\n"), 0o644)
+		return os.WriteFile(marker, []byte("block\n"), 0o600)
 	}
 	err := os.Remove(marker)
 	if errors.Is(err, os.ErrNotExist) {
@@ -331,10 +331,10 @@ func tamperFile(path string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.Chmod(path, 0o644); err != nil {
+	if err := os.Chmod(path, 0o600); err != nil {
 		return err
 	}
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) // #nosec G304 -- path names the operator-selected acceptance suite or its private temporary workspace.
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func tamperFile(path string) error {
 		return errors.New("cannot tamper an empty file")
 	}
 	raw[len(raw)-2] ^= 0x01
-	if err := os.WriteFile(path, raw, 0o644); err != nil {
+	if err := os.WriteFile(path, raw, 0o600); err != nil { // #nosec G703 -- destination belongs to the private acceptance workspace built from fixed fixture recipes.
 		return err
 	}
 	return os.Chmod(path, info.Mode())
@@ -350,7 +350,7 @@ func tamperFile(path string) error {
 
 // restoreFixtureFile rewrites a workspace file from its frozen fixture bytes.
 func (ws *workspace) restoreFixtureFile(relative, target string, mode os.FileMode) error {
-	if err := os.Chmod(target, 0o644); err != nil {
+	if err := os.Chmod(target, 0o600); err != nil {
 		return err
 	}
 	return ws.copyFixture(relative, target, mode)
@@ -387,13 +387,13 @@ func (ws *workspace) httpArguments(bind string) []string {
 }
 
 func (ws *workspace) remove() {
-	_ = os.Chmod(ws.scriptPath, 0o755)
+	_ = os.Chmod(ws.scriptPath, 0o600)
 	for _, catalog := range ws.catalogs {
-		_ = os.Chmod(catalog.path, 0o644)
+		_ = os.Chmod(catalog.path, 0o600)
 	}
 	if entries, err := os.ReadDir(filepath.Join(ws.root, "policies")); err == nil {
 		for _, entry := range entries {
-			_ = os.Chmod(filepath.Join(ws.root, "policies", entry.Name()), 0o644)
+			_ = os.Chmod(filepath.Join(ws.root, "policies", entry.Name()), 0o600)
 		}
 	}
 	_ = os.RemoveAll(ws.root)
