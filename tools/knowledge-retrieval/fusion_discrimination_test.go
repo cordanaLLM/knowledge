@@ -247,13 +247,11 @@ func TestSeparatingShapesAtRealCorpusSize(t *testing.T) {
 // and selectLexicalTopK for lexical, denseDotProduct plus the dense comparator
 // for dense. No scoring arithmetic is restated here.
 const (
-	goldRankAcceptanceDir = "../../knowledge/registry/acceptance/p1-src-03"
-	goldRankStoreRoot     = goldRankAcceptanceDir + "/retrieval"
-	goldRankCrosswalkPath = goldRankAcceptanceDir + "/crosswalk.json"
-	goldRankFreezePath    = multidomainFixtureRoot + "/suite-freeze.core.json"
+	goldRankAcceptanceRelDir = "knowledge/registry/acceptance/p1-src-03"
+	goldRankFreezePath       = multidomainFixtureRoot + "/suite-freeze.core.json"
 	// The suite named by the most recent committed evaluation receipt
 	// (multidomain-evaluation-receipts/.../e92c6086, evaluated 2026-07-20).
-	goldRankSuitePath = goldRankStoreRoot + "/multidomain-evaluation-suites/sha256/78/" +
+	goldRankSuiteRelPath = goldRankAcceptanceRelDir + "/retrieval/multidomain-evaluation-suites/sha256/78/" +
 		"783779b3a446f26e02642c0db536f112a0ba03cd549272cb910984eef9959b69.json"
 	goldRankSuiteID = "multidomain-evaluation-suite:sha256:" +
 		"783779b3a446f26e02642c0db536f112a0ba03cd549272cb910984eef9959b69"
@@ -388,17 +386,18 @@ func unitSpanIDFor(ref EvidenceRef) string {
 // on load, so both the gold-rank measurement and the case-mining search below
 // read exactly the artifacts the committed receipt was produced from.
 type goldRankCorpus struct {
-	suite   MultidomainEvaluationSuite
-	index   LexicalIndex
-	profile string
-	dense   DenseVectorArtifact
-	window  int
+	suite         MultidomainEvaluationSuite
+	index         LexicalIndex
+	profile       string
+	dense         DenseVectorArtifact
+	window        int
+	storeRoot     string
+	acceptanceDir string
 }
 
-func loadGoldRankCorpus(t *testing.T) goldRankCorpus {
+func loadGoldSuite(t *testing.T, suitePath string) MultidomainEvaluationSuite {
 	t.Helper()
-
-	suiteBytes, err := readStableFile(goldRankSuitePath, "multidomain evaluation suite", maxMultidomainSuiteBytes)
+	suiteBytes, err := readStableFile(suitePath, "multidomain evaluation suite", maxMultidomainSuiteBytes)
 	if err != nil {
 		t.Fatalf("read suite: %v", err)
 	}
@@ -409,8 +408,18 @@ func loadGoldRankCorpus(t *testing.T) goldRankCorpus {
 	if suite.SuiteID != goldRankSuiteID {
 		t.Fatalf("suite id %q; want the receipt-pinned %q", suite.SuiteID, goldRankSuiteID)
 	}
+	return suite
+}
 
-	indexBytes, err := verifyFileDigest(filepath.Join(goldRankStoreRoot, filepath.FromSlash(suite.LexicalIndex.ObjectPath)),
+func loadGoldRankCorpus(t *testing.T, purpose string) goldRankCorpus {
+	t.Helper()
+	dataRoot := knowledgeDataRoot(t, purpose, goldRankSuiteRelPath)
+	acceptanceDir := filepath.Join(dataRoot, filepath.FromSlash(goldRankAcceptanceRelDir))
+	storeRoot := filepath.Join(acceptanceDir, "retrieval")
+	suitePath := filepath.Join(dataRoot, filepath.FromSlash(goldRankSuiteRelPath))
+	suite := loadGoldSuite(t, suitePath)
+
+	indexBytes, err := verifyFileDigest(filepath.Join(storeRoot, filepath.FromSlash(suite.LexicalIndex.ObjectPath)),
 		suite.LexicalIndex.DocumentSHA256, suite.LexicalIndex.ByteSize)
 	if err != nil {
 		t.Fatalf("lexical index does not match its suite pin: %v", err)
@@ -419,7 +428,7 @@ func loadGoldRankCorpus(t *testing.T) goldRankCorpus {
 	if err := decodeStrictCanonical(indexBytes, &index); err != nil {
 		t.Fatalf("decode lexical index: %v", err)
 	}
-	candidateBytes, err := verifyFileDigest(filepath.Join(goldRankStoreRoot, filepath.FromSlash(suite.LexicalCandidate.ObjectPath)),
+	candidateBytes, err := verifyFileDigest(filepath.Join(storeRoot, filepath.FromSlash(suite.LexicalCandidate.ObjectPath)),
 		suite.LexicalCandidate.DocumentSHA256, suite.LexicalCandidate.ByteSize)
 	if err != nil {
 		t.Fatalf("lexical candidate does not match its suite pin: %v", err)
@@ -432,7 +441,7 @@ func loadGoldRankCorpus(t *testing.T) goldRankCorpus {
 	if !isBM25FProfile(profile) {
 		t.Fatalf("lexical profile %q is not BM25F; this harness drives the BM25F scorers", profile)
 	}
-	denseBytes, err := verifyFileDigest(filepath.Join(goldRankStoreRoot, filepath.FromSlash(suite.DenseArtifact.ObjectPath)),
+	denseBytes, err := verifyFileDigest(filepath.Join(storeRoot, filepath.FromSlash(suite.DenseArtifact.ObjectPath)),
 		suite.DenseArtifact.DocumentSHA256, suite.DenseArtifact.ByteSize)
 	if err != nil {
 		t.Fatalf("dense artifact does not match its suite pin: %v", err)
@@ -446,11 +455,19 @@ func loadGoldRankCorpus(t *testing.T) goldRankCorpus {
 	t.Logf("corpus: lexical index document_count=%d documents=%d terms=%d; dense vectors=%d; fusion window=%d",
 		index.DocumentCount, len(index.Documents), len(index.Terms), len(dense.Documents), window)
 
-	return goldRankCorpus{suite: suite, index: index, profile: profile, dense: dense, window: window}
+	return goldRankCorpus{
+		suite:         suite,
+		index:         index,
+		profile:       profile,
+		dense:         dense,
+		window:        window,
+		storeRoot:     storeRoot,
+		acceptanceDir: acceptanceDir,
+	}
 }
 
 func TestGoldSpanLaneRanks(t *testing.T) {
-	corpus := loadGoldRankCorpus(t)
+	corpus := loadGoldRankCorpus(t, "gold span lane ranks")
 	suite, index, profile, dense, window := corpus.suite, corpus.index, corpus.profile, corpus.dense, corpus.window
 
 	freezeBytes, err := readStableFile(goldRankFreezePath, "scorer-blind freeze core", maxScorerBlindFreezeBytes)
@@ -465,7 +482,7 @@ func TestGoldSpanLaneRanks(t *testing.T) {
 		t.Fatalf("freeze carries %d cases; the frozen suite is eleven", len(freeze.Cases))
 	}
 
-	crosswalkBytes, err := readStableFile(goldRankCrosswalkPath, "crosswalk", maxManifestBytes)
+	crosswalkBytes, err := readStableFile(filepath.Join(corpus.acceptanceDir, "crosswalk.json"), "crosswalk", maxManifestBytes)
 	if err != nil {
 		t.Fatalf("read crosswalk: %v", err)
 	}
@@ -538,7 +555,7 @@ func TestGoldSpanLaneRanks(t *testing.T) {
 			continue
 		}
 
-		signalPath := filepath.Join(goldRankStoreRoot, filepath.FromSlash(suiteCase.Signals.Baseline.ObjectPath))
+		signalPath := filepath.Join(corpus.storeRoot, filepath.FromSlash(suiteCase.Signals.Baseline.ObjectPath))
 		signalBytes, err := verifyFileDigest(signalPath, suiteCase.Signals.Baseline.DocumentSHA256, suiteCase.Signals.Baseline.ByteSize)
 		if err != nil {
 			unresolved(fmt.Sprintf("query signal does not match its suite pin: %v", err))
@@ -731,7 +748,7 @@ func formatLaneRanks(ranks laneRanks) string {
 }
 
 func TestMineSeparatingCaseShapes(t *testing.T) {
-	corpus := loadGoldRankCorpus(t)
+	corpus := loadGoldRankCorpus(t, "mine separating case shapes")
 	suite, index, window := corpus.suite, corpus.index, corpus.window
 	champion := championProfile(window)
 
@@ -760,7 +777,7 @@ func TestMineSeparatingCaseShapes(t *testing.T) {
 		}
 		loaded := make([]QuerySignalArtifact, 0, len(arms))
 		for _, arm := range arms {
-			signalPath := filepath.Join(goldRankStoreRoot, filepath.FromSlash(arm.binding.ObjectPath))
+			signalPath := filepath.Join(corpus.storeRoot, filepath.FromSlash(arm.binding.ObjectPath))
 			signalBytes, err := verifyFileDigest(signalPath, arm.binding.DocumentSHA256, arm.binding.ByteSize)
 			if err != nil {
 				t.Fatalf("%s %s query signal does not match its suite pin: %v", suiteCase.CaseID, arm.name, err)
