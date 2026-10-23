@@ -1,5 +1,27 @@
 # Archeion
 
+<!-- praetor:readme-governance:start -->
+[![HISS Adopted][praetor-hiss-badge]][praetor-hiss-agents]
+
+Praetor manages this repository's declared governance policy. This managed
+block records adoption state; it is not a verification certificate.
+
+**Verification**: `make verify-all` runs the repository's configured
+verification cascade.
+
+**HISS Audit**: `praetorctl audit` enforces policy, generated-surface
+integrity, and the debt ratchet.
+
+**Context Sync**: `praetorctl compile-context --verify` verifies every
+generated agent context against `AGENTS.md`.
+
+**Debt Baseline**: `.standards-baseline.json` anchors the debt ratchet at
+540 recorded infractions; audit forbids growth.
+
+[praetor-hiss-badge]: https://img.shields.io/badge/Standards-HISS%20Adopted%20(540%20baselined)-yellow
+[praetor-hiss-agents]: https://github.com/cordanaLLM/knowledge/blob/HEAD/AGENTS.md
+<!-- praetor:readme-governance:end -->
+
 The name Archeion (say *ar-KAY-on*) is the Greek *arkheion*: the public records office of a Greek city, where official records and evidence were kept.
 
 Archeion is a Tekmora project. Tekmora, from Greek *tekmor* (Homeric *tekmor*): a set goal, and the sign that shows the way to it; said *TEK-mo-ra*.

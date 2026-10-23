@@ -1,0 +1,6 @@
+{
+  "repository": "lusoris/k8s",
+  "commit": "6e769dbd188ab74ce583edc7b3dceb48955106bc",
+  "path": "testdata/canonical-json/v1/vectors.json",
+  "sha256": "b12413cb0897ae14edfaf1a3e6e39f31e543f07c404ab39090612082747302cd"
+}
