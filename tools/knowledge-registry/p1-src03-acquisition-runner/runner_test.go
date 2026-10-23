@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -941,90 +939,70 @@ func TestExecutionManifestBindsExactRepositoryBytes(t *testing.T) {
 	}
 }
 
-func findAbsentRepositoryArtifact(manifest executionManifest, repositoryRoot string) (executionArtifact, bool) {
-	for _, artifact := range manifest.Artifacts {
-		if strings.HasPrefix(artifact.LogicalPath, "knowledge/registry/") {
-			continue
-		}
-		repoPath := filepath.Join(repositoryRoot, filepath.FromSlash(artifact.LogicalPath))
-		if _, err := os.Stat(repoPath); os.IsNotExist(err) {
-			return artifact, true
-		}
-	}
-	return executionArtifact{}, false
-}
-
-const canonicalVectorsGZBase64 = `H4sIAAAAAAACA91YzW7jNhC+5ykMHXoybdnOj10UvXcP+wLRwqClsc2EIlWScuINDOxjFO
-ih125fY9+kt976CB1SlEzHtmI36QLbXBTxZ75vZj4OR3666HQinS4hp9MVKM2kiL7vRINe
-3Iujrp0slJwzDhqHn/AdRxZyykQGwkA2Lc18PF2anGs6h6mAB84ENEtxMcsLDjkupgZtWy
-u3fgonjZRc9++FfOCQLYAoMIrBivJ+aRjvLaSjsLPYUH1PYMUQPwXC2UxRxahoNvj1H9xz
-U22PFCyYNmo9TWVe0NQ42q9gWVnbDk3roV6x3qd8YGcxIFql8YjQ9OeSaWZRiSqFANVPpT
-AKSR71RhupKILWzlCdMnZ27GlRPItm3xsmKRUUSbq091EVbL6eKvowTWlhSgXWyV1iF55c
-hKkrYQvUMEGLUrCU8oDeiUqKnhLR6SQR5cWSJta0fe90Bt3qaVQJ/l9Rcm7/+9CttsxtGN
-Fzu2vQG1754Y9gnKEk4lSbJErEJhFh2o7JBak0NG4HXYdsMREvxKqgapgaZRMivJTC1yGh
-Nx5q0220kFmzUmWgICMaU0GVbihVidtNjsPf0YwNevDiWAXvlmDz+iHwtmZcp2E7Y5lbXp
-Z4wzkU+1sqCHJ5x6rE//3bL5+SyOvBbqmGk6SM41FaPcA9htfNOmuuWTeMh+Nm5svnavyv
-X/84U041py2lmk4S/fDjd27A4ybRn59+dwMOzqOdLastInqRjUeZfUAcv4AduFyFCSb1+O
-QaaKvqSkyczIBQkRFA6RVMLFql5zjanTYooYOWnx1HeuFw7R4GKBz+8tkOYpjapVWR5MyA
-opzMaHqvUY9LYq0SDQVVFOPaflj8bmvIR6pfPSf7QXkDKXu4Wo1bSA96pgq35o5YO1tlL1
-sM5NKSFYbhWNi0zLmkhph1Ae2JELDA224F04+gJE4RbGQC7oW0l+0KXCkKJ3LGuS9Rsfvr
-xf9F4jxMssXxJWSHd+KI+5masttzVlq3YI1P3X0kUg0HMBiZsxP+Gqw9KVz4+wO9uwMExO
-Zjv6eoBJKVBceUGCByZteSe9i2YJHtWsLL2wJ2q+dwE7XoDhNN5kygiomR9yBaTb6n71uN
-SeyhUL8PaIpsDbezhMs4bjXqTgYoIkujsX8j+H592WpzMhyORjfDeHQ9vrq8ubkax+NWhF
-IUlLluoVRKYiLbKfsLxd4krWbzkhuGjSnxzeJhmyiKpxf8x/0sI27Hjo0Z1YChwDWwfrf8
-6U6y/vqdr8N70sJ8hMf69nAgtFR4ugOJ6aOhmJ2sMQ40w5uQPCxRDRpP1pH4dmpNtFqDR/
-xqIPWhbNUWxrY+csdsFVJgQSOizGeoMV0Anu7w0j4o2aBqHKuVra11XXpOuBdQlqXIKFKs
-m8vzuPbir0i2roLEVkHSBPckpiR+i7DauvsvqNY15kSmr+e5R7I5rjOJ+Q5+hJitDUw5y5
-kJv3hz+sjyMseh8TGqBV1jK5G5ghUPhqPLq+ub8eR5zcJAaHufU6XoOvxyDrvUxwKrAWQ7
-Lp7aD9A0hcJE4ffT8egcWvzipew3NXs2wY1eJRu35nhwMly23GmnYQXcOn09et4DfTvuV/
-W9zf365w7nP3ECo2p9OBCXLYGoK1LFnuR4KbWENPz8/dZCeHoQ7Ac9qUChLRyD4fj/GY+v
-54pn9dano0nlCcdjMJzslG37s+DmYnPxD9jtmtleFgAA`
-
-func testCanonicalVectorsPayload(tb testingTB) []byte {
-	tb.Helper()
-	gz, err := base64.StdEncoding.DecodeString(canonicalVectorsGZBase64)
-	if err != nil {
-		tb.Fatalf("decode canonical vectors: %v", err)
-	}
-	r, err := gzip.NewReader(bytes.NewReader(gz))
-	if err != nil {
-		tb.Fatalf("gzip reader canonical vectors: %v", err)
-	}
-	defer r.Close()
-	raw, err := io.ReadAll(r)
-	if err != nil {
-		tb.Fatalf("read canonical vectors: %v", err)
-	}
-	return raw
+func syntheticPlantedArtifact() (executionArtifact, []byte) {
+	content := []byte("synthetic planted artifact payload\n")
+	digest := sha256.Sum256(content)
+	return executionArtifact{
+		LogicalPath: "tools/planted/absent.txt",
+		Role:        "planted-test",
+		SHA256:      "sha256:" + hex.EncodeToString(digest[:]),
+		Bytes:       int64(len(content)),
+	}, content
 }
 
 func TestExecutionManifestPlantedRepositoryArtifactMissingFails(t *testing.T) {
-	manifest, err := exactExecutionManifest()
-	if err != nil {
-		t.Fatal(err)
-	}
-	repositoryRoot := filepath.Join("..", "..", "..")
-	target, ok := findAbsentRepositoryArtifact(manifest, repositoryRoot)
-	if !ok {
-		t.Fatal("expected at least one repository manifest artifact absent from repository")
-	}
+	artifact, content := syntheticPlantedArtifact()
+	tempRepoRoot := t.TempDir()
 	tempDataRoot := t.TempDir()
-	dataCopyPath := filepath.Join(tempDataRoot, filepath.FromSlash(target.LogicalPath))
+	dataCopyPath := filepath.Join(tempDataRoot, filepath.FromSlash(artifact.LogicalPath))
 	if err := os.MkdirAll(filepath.Dir(dataCopyPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	payload := testCanonicalVectorsPayload(t)
-	if err := os.WriteFile(dataCopyPath, payload, 0o644); err != nil {
+	if err := os.WriteFile(dataCopyPath, content, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	spy := &spyTB{}
-	verifyExecutionArtifact(spy, target, repositoryRoot, tempDataRoot)
+	verifyExecutionArtifact(spy, artifact, tempRepoRoot, tempDataRoot)
 	if !spy.failed {
-		t.Fatalf("expected missing repository artifact %s to fail, but read from data root succeeded", target.LogicalPath)
+		t.Fatalf("expected missing repository artifact %s to fail, but read from data root succeeded", artifact.LogicalPath)
 	}
-	expectedRepoPath := filepath.Join(repositoryRoot, filepath.FromSlash(target.LogicalPath))
+	expectedRepoPath := filepath.Join(tempRepoRoot, filepath.FromSlash(artifact.LogicalPath))
 	if !strings.Contains(spy.message, expectedRepoPath) {
 		t.Fatalf("expected failure message %q to name repository path %s", spy.message, expectedRepoPath)
+	}
+}
+
+func TestExecutionManifestPlantedRepositoryArtifactPresentOrDrifted(t *testing.T) {
+	artifact, content := syntheticPlantedArtifact()
+	tempRepoRoot := t.TempDir()
+	tempDataRoot := t.TempDir()
+	repoPath := filepath.Join(tempRepoRoot, filepath.FromSlash(artifact.LogicalPath))
+	if err := os.MkdirAll(filepath.Dir(repoPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(repoPath, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	spyPass := &spyTB{}
+	verifyExecutionArtifact(spyPass, artifact, tempRepoRoot, tempDataRoot)
+	if spyPass.failed {
+		t.Fatalf("expected matching repository artifact to pass, got: %s", spyPass.message)
+	}
+
+	corrupted := append([]byte(nil), content...)
+	corrupted[0] ^= 0xff
+	if err := os.WriteFile(repoPath, corrupted, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	spyDrift := &spyTB{}
+	verifyExecutionArtifact(spyDrift, artifact, tempRepoRoot, tempDataRoot)
+	if !spyDrift.failed {
+		t.Fatal("expected wrong digest to fail with drift line")
+	}
+	if !strings.Contains(spyDrift.message, "execution artifact drifted:") {
+		t.Fatalf("expected failure message to report drift, got: %s", spyDrift.message)
 	}
 }
 
