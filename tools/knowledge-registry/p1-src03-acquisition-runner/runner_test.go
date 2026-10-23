@@ -878,21 +878,38 @@ func TestSharedCanonicalJSONConformanceVectors(t *testing.T) {
 	}
 }
 
+func verifyExecutionArtifact(tb testingTB, artifact executionArtifact, repositoryRoot, dataRoot string) {
+	tb.Helper()
+	path := filepath.Join(repositoryRoot, filepath.FromSlash(artifact.LogicalPath))
+	if strings.HasPrefix(artifact.LogicalPath, "knowledge/registry/") {
+		path = filepath.Join(dataRoot, filepath.FromSlash(artifact.LogicalPath))
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		if strings.HasPrefix(artifact.LogicalPath, "knowledge/registry/") {
+			tb.Fatalf("missing data root file %s: %v", path, err)
+		} else {
+			tb.Fatalf("missing repository file %s: %v", path, err)
+		}
+		return
+	}
+	digest := sha256.Sum256(raw)
+	if got := "sha256:" + hex.EncodeToString(digest[:]); got != artifact.SHA256 || int64(len(raw)) != artifact.Bytes {
+		tb.Fatalf("execution artifact drifted: %s = %s/%d, want %s/%d", artifact.LogicalPath, got, len(raw), artifact.SHA256, artifact.Bytes)
+		return
+	}
+}
+
 func TestExecutionManifestBindsExactRepositoryBytes(t *testing.T) {
 	manifest, err := exactExecutionManifest()
 	if err != nil {
 		t.Fatal(err)
 	}
+	dataRoot := knowledgeDataRoot(t, "execution manifest exact repository bytes",
+		"knowledge/registry/schemas/source-acquisition-contract-v2.schema.json")
 	repositoryRoot := filepath.Join("..", "..", "..")
 	for _, artifact := range manifest.Artifacts {
-		raw, err := os.ReadFile(filepath.Join(repositoryRoot, filepath.FromSlash(artifact.LogicalPath)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		digest := sha256.Sum256(raw)
-		if got := "sha256:" + hex.EncodeToString(digest[:]); got != artifact.SHA256 || int64(len(raw)) != artifact.Bytes {
-			t.Fatalf("execution artifact drifted: %s = %s/%d, want %s/%d", artifact.LogicalPath, got, len(raw), artifact.SHA256, artifact.Bytes)
-		}
+		verifyExecutionArtifact(t, artifact, repositoryRoot, dataRoot)
 	}
 	gate, err := exactExecutionGateBinding()
 	if err != nil {
@@ -919,6 +936,73 @@ func TestExecutionManifestBindsExactRepositoryBytes(t *testing.T) {
 				t.Fatal("execution manifest scope drift was accepted")
 			}
 		})
+	}
+}
+
+func syntheticPlantedArtifact() (executionArtifact, []byte) {
+	content := []byte("synthetic planted artifact payload\n")
+	digest := sha256.Sum256(content)
+	return executionArtifact{
+		LogicalPath: "tools/planted/absent.txt",
+		Role:        "planted-test",
+		SHA256:      "sha256:" + hex.EncodeToString(digest[:]),
+		Bytes:       int64(len(content)),
+	}, content
+}
+
+func TestExecutionManifestPlantedRepositoryArtifactMissingFails(t *testing.T) {
+	artifact, content := syntheticPlantedArtifact()
+	tempRepoRoot := t.TempDir()
+	tempDataRoot := t.TempDir()
+	dataCopyPath := filepath.Join(tempDataRoot, filepath.FromSlash(artifact.LogicalPath))
+	if err := os.MkdirAll(filepath.Dir(dataCopyPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dataCopyPath, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	spy := &spyTB{}
+	verifyExecutionArtifact(spy, artifact, tempRepoRoot, tempDataRoot)
+	if !spy.failed {
+		t.Fatalf("expected missing repository artifact %s to fail, but read from data root succeeded", artifact.LogicalPath)
+	}
+	expectedRepoPath := filepath.Join(tempRepoRoot, filepath.FromSlash(artifact.LogicalPath))
+	if !strings.Contains(spy.message, expectedRepoPath) {
+		t.Fatalf("expected failure message %q to name repository path %s", spy.message, expectedRepoPath)
+	}
+}
+
+func TestExecutionManifestPlantedRepositoryArtifactPresentOrDrifted(t *testing.T) {
+	artifact, content := syntheticPlantedArtifact()
+	tempRepoRoot := t.TempDir()
+	tempDataRoot := t.TempDir()
+	repoPath := filepath.Join(tempRepoRoot, filepath.FromSlash(artifact.LogicalPath))
+	if err := os.MkdirAll(filepath.Dir(repoPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(repoPath, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	spyPass := &spyTB{}
+	verifyExecutionArtifact(spyPass, artifact, tempRepoRoot, tempDataRoot)
+	if spyPass.failed {
+		t.Fatalf("expected matching repository artifact to pass, got: %s", spyPass.message)
+	}
+
+	corrupted := append([]byte(nil), content...)
+	corrupted[0] ^= 0xff
+	if err := os.WriteFile(repoPath, corrupted, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	spyDrift := &spyTB{}
+	verifyExecutionArtifact(spyDrift, artifact, tempRepoRoot, tempDataRoot)
+	if !spyDrift.failed {
+		t.Fatal("expected wrong digest to fail with drift line")
+	}
+	if !strings.Contains(spyDrift.message, "execution artifact drifted:") {
+		t.Fatalf("expected failure message to report drift, got: %s", spyDrift.message)
 	}
 }
 
@@ -962,37 +1046,17 @@ func TestEmitSchemaValidationFixtures(t *testing.T) {
 	}
 }
 
-func TestP1SRC02RunnerAndSchemasRemainByteIdentical(t *testing.T) {
-	expected := map[string]string{
-		"../source-acquisition-runner/README.md":                                           "f7da4d8a2f555970203d33d5750cef97c2dc383c77867bf7d5aa333ce2c8646c",
-		"../source-acquisition-runner/cas.go":                                              "93721cb78aa49acc8377a209f3df6b6368056c276744dc49e0338f5887ddea75",
-		"../source-acquisition-runner/contract.go":                                         "aef2405575f8fee962611f8fee95a852483337fd75636afc71d81f0969f2ff15",
-		"../source-acquisition-runner/github.go":                                           "37c48cfbe1efe4932ee126271eb8958fd8f138714f02710d8afa648e6e2e80e3",
-		"../source-acquisition-runner/go.mod":                                              "793c7f899940cc686f170ff89215d9b8eee48f4ebfaf793726b70b1be10c32de",
-		"../source-acquisition-runner/main.go":                                             "a99cd8e28f21f325fd2ef057169e477a8ff30a04302726e0be3470f1e2335127",
-		"../source-acquisition-runner/runner_test.go":                                      "de66639d35f46611ceff59b4a9a01f7883c90ec29c316d8b47cf38d16a062fe8",
-		"../../../knowledge/registry/schemas/source-acquisition-receipt.schema.json":       "ed1577e9741674b0a5ad036b949b811293b82579c635c6c63bc5e561eab1eeb1",
-		"../../../knowledge/registry/schemas/source-inventory-proposal.schema.json":        "a9197f0a7ac704f92650354153e35ad90734b99feaa99ebb7bb38123932f12ac",
-		"../../../knowledge/registry/schemas/source-acquisition-output-common.schema.json": "0a6b54bfab2af8ec7400de5b439d34d6f9f05c8d914deb479585dbe73ee92549",
-		"../../../knowledge/registry/schemas/source-acquisition-plan.schema.json":          "a89767e5b9689da4242bfbc2d22160baad204f6596ad61aab6b41fd00c50358d",
-	}
-	for path, want := range expected {
-		raw, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		digest := sha256.Sum256(raw)
-		if got := hex.EncodeToString(digest[:]); got != want {
-			t.Fatalf("P1-SRC-02 frozen artifact changed: %s = %s, want %s", path, got, want)
-		}
-	}
-	for _, identity := range []string{
+func verifyRunnerIdentities(t *testing.T) {
+	t.Helper()
+	identities := []string{
 		"source-acquisition-plan:sha256:7b06d690d2edfe08e1fd05060116b3ca08a2a8f82763976f4d4fe1232c844aad",
 		"accepted-record-artifact-bundle:sha256:61310bc368840c0202b0bd6e6d828c140aba26b7a389922d9b1fdbb836aecba6",
 		"sha256:6306df08e525472da822d10477ea12a9ec3929d14d9d322f842ac88b76401fdb",
-	} {
+	}
+	paths := []string{"../source-acquisition-runner/contract.go", "../source-acquisition-runner/github.go", "../source-acquisition-runner/README.md"}
+	for _, identity := range identities {
 		found := false
-		for _, path := range []string{"../source-acquisition-runner/contract.go", "../source-acquisition-runner/github.go", "../source-acquisition-runner/README.md"} {
+		for _, path := range paths {
 			raw, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)
@@ -1003,6 +1067,51 @@ func TestP1SRC02RunnerAndSchemasRemainByteIdentical(t *testing.T) {
 			t.Fatalf("P1-SRC-02 frozen identity disappeared: %s", identity)
 		}
 	}
+}
+
+func TestP1SRC02RunnerAndSchemasRemainByteIdentical(t *testing.T) {
+	runnerFiles := map[string]string{
+		"../source-acquisition-runner/README.md":      "f7da4d8a2f555970203d33d5750cef97c2dc383c77867bf7d5aa333ce2c8646c",
+		"../source-acquisition-runner/cas.go":         "93721cb78aa49acc8377a209f3df6b6368056c276744dc49e0338f5887ddea75",
+		"../source-acquisition-runner/contract.go":    "aef2405575f8fee962611f8fee95a852483337fd75636afc71d81f0969f2ff15",
+		"../source-acquisition-runner/github.go":      "37c48cfbe1efe4932ee126271eb8958fd8f138714f02710d8afa648e6e2e80e3",
+		"../source-acquisition-runner/go.mod":         "793c7f899940cc686f170ff89215d9b8eee48f4ebfaf793726b70b1be10c32de",
+		"../source-acquisition-runner/main.go":        "a99cd8e28f21f325fd2ef057169e477a8ff30a04302726e0be3470f1e2335127",
+		"../source-acquisition-runner/runner_test.go": "de66639d35f46611ceff59b4a9a01f7883c90ec29c316d8b47cf38d16a062fe8",
+	}
+	for path, want := range runnerFiles {
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest := sha256.Sum256(raw)
+		if got := hex.EncodeToString(digest[:]); got != want {
+			t.Fatalf("P1-SRC-02 frozen artifact changed: %s = %s, want %s", path, got, want)
+		}
+	}
+	verifyRunnerIdentities(t)
+
+	schemaFiles := map[string]string{
+		"knowledge/registry/schemas/source-acquisition-receipt.schema.json":       "ed1577e9741674b0a5ad036b949b811293b82579c635c6c63bc5e561eab1eeb1",
+		"knowledge/registry/schemas/source-inventory-proposal.schema.json":        "a9197f0a7ac704f92650354153e35ad90734b99feaa99ebb7bb38123932f12ac",
+		"knowledge/registry/schemas/source-acquisition-output-common.schema.json": "0a6b54bfab2af8ec7400de5b439d34d6f9f05c8d914deb479585dbe73ee92549",
+		"knowledge/registry/schemas/source-acquisition-plan.schema.json":          "a89767e5b9689da4242bfbc2d22160baad204f6596ad61aab6b41fd00c50358d",
+	}
+	t.Run("schemas", func(t *testing.T) {
+		dataRoot := knowledgeDataRoot(t, "P1-SRC-02 schema byte identity",
+			"knowledge/registry/schemas/source-acquisition-receipt.schema.json")
+		for rel, want := range schemaFiles {
+			path := filepath.Join(dataRoot, filepath.FromSlash(rel))
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("read schema %s: %v", path, err)
+			}
+			digest := sha256.Sum256(raw)
+			if got := hex.EncodeToString(digest[:]); got != want {
+				t.Fatalf("P1-SRC-02 frozen schema changed: %s = %s, want %s", path, got, want)
+			}
+		}
+	})
 }
 
 func TestGetJSONRejectsRepositoryOutsideContract(t *testing.T) {
