@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"syscall"
@@ -32,70 +33,89 @@ func newCASStore(root string) (*casStore, error) {
 	if absolute == string(os.PathSeparator) {
 		return nil, errors.New("output root must not be the filesystem root")
 	}
+	rootFile, err := openCASRoot(absolute)
+	if err != nil {
+		return nil, err
+	}
+	info, err := rootFile.Stat()
+	if err != nil {
+		return nil, closeWithError(fmt.Errorf("inspect output root: %w", err), rootFile)
+	}
+	if err := validateOwnedDirectory(info, "output root"); err != nil {
+		return nil, closeWithError(err, rootFile)
+	}
+	store := &casStore{root: absolute, rootFile: rootFile, rootInfo: info}
+	if err := store.verifyRootPath(); err != nil {
+		return nil, closeWithError(err, rootFile)
+	}
+	if err := store.initializeDirectories(); err != nil {
+		return nil, closeWithError(err, rootFile)
+	}
+	return store, nil
+}
+
+func (s *casStore) initializeDirectories() error {
+	recoveryState, err := s.hasRecoveryState()
+	if err != nil {
+		return err
+	}
+	for _, relative := range []string{"cas", "cas/sha256", "receipts", "inventory-proposals"} {
+		if recoveryState {
+			directory, _, openErr := s.openStoreDirectory(relative, false)
+			if openErr == nil {
+				if err := closeWithError(nil, directory); err != nil {
+					return err
+				}
+				continue
+			}
+			return fmt.Errorf("recovery state is missing required directory %s: %w", relative, openErr)
+		}
+		if _, err := s.ensureDirectory(relative); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *casStore) hasRecoveryState() (bool, error) {
+	receipts, _, err := s.listOptionalPublishedDirectory("receipts", 2)
+	if err != nil {
+		return false, fmt.Errorf("preflight receipts: %w", err)
+	}
+	proposals, _, err := s.listOptionalPublishedDirectory("inventory-proposals", 2)
+	if err != nil {
+		return false, fmt.Errorf("preflight inventory proposals: %w", err)
+	}
+	if len(receipts) == 0 && len(proposals) != 0 {
+		return false, errors.New("inventory proposal exists without its predecessor receipt")
+	}
+	return len(receipts) != 0 || len(proposals) != 0, nil
+}
+
+func openCASRoot(absolute string) (file *os.File, err error) {
 	parent, err := openDirectoryPathNoFollow(filepath.Dir(absolute))
 	if err != nil {
 		return nil, fmt.Errorf("output parent: %w", err)
 	}
-	defer parent.Close()
+	defer func() {
+		err = closeWithError(err, parent)
+		if err != nil && file != nil {
+			err = closeWithError(err, file)
+			file = nil
+		}
+	}()
 	leaf := filepath.Base(absolute)
-	rootFile, err := openDirectoryAt(parent, leaf)
-	if errors.Is(err, os.ErrNotExist) {
-		if err := syscall.Mkdirat(int(parent.Fd()), leaf, 0o700); err != nil && !errors.Is(err, syscall.EEXIST) {
-			return nil, fmt.Errorf("create output root: %w", err)
-		}
-		if err := syncOpenedFile(parent); err != nil {
-			return nil, fmt.Errorf("persist output root: %w", err)
-		}
-		rootFile, err = openDirectoryAt(parent, leaf)
+	file, err = openDirectoryAt(parent, leaf)
+	if !errors.Is(err, os.ErrNotExist) {
+		return file, err
 	}
-	if err != nil {
-		return nil, fmt.Errorf("inspect output root: %w", err)
+	if err := syscall.Mkdirat(int(parent.Fd()), leaf, 0o700); err != nil && !errors.Is(err, syscall.EEXIST) {
+		return nil, fmt.Errorf("create output root: %w", err)
 	}
-	info, err := rootFile.Stat()
-	if err != nil {
-		rootFile.Close()
-		return nil, fmt.Errorf("inspect output root: %w", err)
+	if err := syncOpenedFile(parent); err != nil {
+		return nil, fmt.Errorf("persist output root: %w", err)
 	}
-	if err := validateOwnedDirectory(info, "output root"); err != nil {
-		rootFile.Close()
-		return nil, err
-	}
-	store := &casStore{root: absolute, rootFile: rootFile, rootInfo: info}
-	if err := store.verifyRootPath(); err != nil {
-		rootFile.Close()
-		return nil, err
-	}
-	receipts, _, err := store.listOptionalPublishedDirectory("receipts", 2)
-	if err != nil {
-		rootFile.Close()
-		return nil, fmt.Errorf("preflight receipts: %w", err)
-	}
-	proposals, _, err := store.listOptionalPublishedDirectory("inventory-proposals", 2)
-	if err != nil {
-		rootFile.Close()
-		return nil, fmt.Errorf("preflight inventory proposals: %w", err)
-	}
-	if len(receipts) == 0 && len(proposals) != 0 {
-		rootFile.Close()
-		return nil, errors.New("inventory proposal exists without its predecessor receipt")
-	}
-	recoveryState := len(receipts) != 0 || len(proposals) != 0
-	for _, relative := range []string{"cas", "cas/sha256", "receipts", "inventory-proposals"} {
-		if recoveryState {
-			directory, _, openErr := store.openStoreDirectory(relative, false)
-			if openErr == nil {
-				directory.Close()
-				continue
-			}
-			rootFile.Close()
-			return nil, fmt.Errorf("recovery state is missing required directory %s: %w", relative, openErr)
-		}
-		if _, err := store.ensureDirectory(relative); err != nil {
-			rootFile.Close()
-			return nil, err
-		}
-	}
-	return store, nil
+	return openDirectoryAt(parent, leaf)
 }
 
 func (s *casStore) listOptionalPublishedDirectory(relative string, maximum int) ([]string, bool, error) {
@@ -162,12 +182,12 @@ func (s *casStore) putProposal(proposalID string, raw []byte) (string, error) {
 	return relative, nil
 }
 
-func (s *casStore) ensureDirectory(relative string) (string, error) {
+func (s *casStore) ensureDirectory(relative string) (result string, err error) {
 	directory, _, err := s.openStoreDirectory(relative, true)
 	if err != nil {
 		return "", err
 	}
-	defer directory.Close()
+	defer func() { err = closeWithError(err, directory) }()
 	return filepath.Join(s.root, filepath.FromSlash(relative)), nil
 }
 
@@ -209,7 +229,7 @@ func (s *casStore) verifyRunSet(receiptPath string, receiptRaw []byte, proposalP
 	if err != nil {
 		return err
 	}
-	if len(receipts) != 1 || receipts[0] != filepath.Base(receiptPath) || len(proposals) != 1 || proposals[0] != filepath.Base(proposalPath) {
+	if !slices.Equal(receipts, []string{filepath.Base(receiptPath)}) || !slices.Equal(proposals, []string{filepath.Base(proposalPath)}) {
 		return errors.New("published receipt/proposal set is incomplete or ambiguous")
 	}
 	actualReceipt, err := s.readPublished(receiptPath, maxPublishedJSONBytes)
@@ -223,7 +243,7 @@ func (s *casStore) verifyRunSet(receiptPath string, receiptRaw []byte, proposalP
 	return nil
 }
 
-func (s *casStore) atomicNoReplace(relative string, raw []byte, maximum int64) error {
+func (s *casStore) atomicNoReplace(relative string, raw []byte, maximum int64) (err error) {
 	if int64(len(raw)) > maximum {
 		return errors.New("published object exceeds its byte bound")
 	}
@@ -236,7 +256,7 @@ func (s *casStore) atomicNoReplace(relative string, raw []byte, maximum int64) e
 	if err != nil {
 		return err
 	}
-	defer parent.Close()
+	defer func() { err = closeWithError(err, parent) }()
 	leaf := filepath.Base(relative)
 	descriptor, err := syscall.Openat(int(parent.Fd()), leaf, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL|syscall.O_CLOEXEC|syscall.O_NOFOLLOW, 0o600)
 	if err != nil {
@@ -247,39 +267,50 @@ func (s *casStore) atomicNoReplace(relative string, raw []byte, maximum int64) e
 	}
 	file := os.NewFile(uintptr(descriptor), leaf)
 	if file == nil {
-		syscall.Close(descriptor)
-		return errors.New("could not own exclusive published object descriptor")
+		return closeDescriptorWithError(errors.New("could not own exclusive published object descriptor"), descriptor)
 	}
+	written, err := writePublishedContents(file, raw)
+	if err != nil {
+		return closeWithError(err, file)
+	}
+	return closeWithError(s.commitPublishedContents(parentRelative, parent, parentInfo, leaf, raw, maximum, written), file)
+}
+
+func (s *casStore) commitPublishedContents(parentRelative string, parent *os.File, parentInfo os.FileInfo, leaf string, raw []byte, maximum int64, written os.FileInfo) error {
+	if err := s.verifyPublishedAtPath(parentRelative, parentInfo, leaf, raw, maximum, written, false, "exclusive published object changed before directory commit"); err != nil {
+		return err
+	}
+	if err := syncOpenedFile(parent); err != nil {
+		return err
+	}
+	if err := s.verifyPublishedAtPath(parentRelative, parentInfo, leaf, raw, maximum, written, false, "exclusive published object changed after directory commit"); err != nil {
+		return err
+	}
+	if err := s.verifyRootPath(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func writePublishedContents(file *os.File, raw []byte) (os.FileInfo, error) {
 	created, err := file.Stat()
 	if err != nil {
-		return errors.Join(err, file.Close())
+		return nil, err
 	}
 	if err := validateOwnedRegular(created, "new published object"); err != nil {
-		return errors.Join(err, file.Close())
+		return nil, err
 	}
 	if err := writeAll(file, raw); err != nil {
-		return errors.Join(err, file.Close())
+		return nil, err
 	}
 	if err := syncOpenedFile(file); err != nil {
-		return errors.Join(err, file.Close())
+		return nil, err
 	}
 	written, err := file.Stat()
 	if err != nil || !os.SameFile(created, written) || written.Size() != int64(len(raw)) {
-		return errors.Join(errors.New("exclusive published object write is incomplete or unstable"), err, file.Close())
+		return nil, errors.Join(errors.New("exclusive published object write is incomplete or unstable"), err)
 	}
-	if err := s.verifyPublishedAtPath(parentRelative, parentInfo, leaf, raw, maximum, written, false, "exclusive published object changed before directory commit"); err != nil {
-		return errors.Join(err, file.Close())
-	}
-	if err := syncOpenedFile(parent); err != nil {
-		return errors.Join(err, file.Close())
-	}
-	if err := s.verifyPublishedAtPath(parentRelative, parentInfo, leaf, raw, maximum, written, false, "exclusive published object changed after directory commit"); err != nil {
-		return errors.Join(err, file.Close())
-	}
-	if err := s.verifyRootPath(); err != nil {
-		return errors.Join(err, file.Close())
-	}
-	return file.Close()
+	return written, nil
 }
 
 func (s *casStore) rehabilitateExisting(parentRelative string, parent *os.File, parentInfo os.FileInfo, leaf string, raw []byte, maximum int64) error {
@@ -299,24 +330,12 @@ func (s *casStore) rehabilitateExisting(parentRelative string, parent *os.File, 
 	return s.verifyRootPath()
 }
 
-func verifyPublishedInDirectory(parent *os.File, leaf string, raw []byte, maximum int64, required os.FileInfo, synchronize bool, conflict string) (os.FileInfo, error) {
-	access := syscall.O_RDONLY
-	if synchronize {
-		access = syscall.O_RDWR
-	}
-	descriptor, err := syscall.Openat(int(parent.Fd()), leaf, access|syscall.O_CLOEXEC|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+func verifyPublishedInDirectory(parent *os.File, leaf string, raw []byte, maximum int64, required os.FileInfo, synchronize bool, conflict string) (info os.FileInfo, err error) {
+	file, err := openPublishedFile(parent, leaf, synchronize)
 	if err != nil {
-		if errors.Is(err, syscall.ELOOP) {
-			return nil, errors.New("published object path exists and is not a regular file")
-		}
 		return nil, err
 	}
-	file := os.NewFile(uintptr(descriptor), leaf)
-	if file == nil {
-		syscall.Close(descriptor)
-		return nil, errors.New("could not own published object file descriptor")
-	}
-	defer file.Close()
+	defer func() { err = closeWithError(err, file) }()
 	before, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -330,42 +349,73 @@ func verifyPublishedInDirectory(parent *os.File, leaf string, raw []byte, maximu
 	if before.Size() > maximum {
 		return nil, errors.New("published object exceeds its byte bound")
 	}
-	existing, err := io.ReadAll(io.LimitReader(file, maximum+1))
+	existing, after, err := readStablePublished(file, before, maximum)
 	if err != nil {
 		return nil, err
-	}
-	if int64(len(existing)) > maximum {
-		return nil, errors.New("published object exceeds its byte bound")
-	}
-	after, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-	if !os.SameFile(before, after) || before.Size() != after.Size() || before.ModTime() != after.ModTime() {
-		return nil, errors.New("published object changed while it was read")
 	}
 	if !bytes.Equal(existing, raw) {
 		return nil, errors.New(conflict)
 	}
 	if synchronize {
-		if err := syncOpenedFile(file); err != nil {
-			return nil, err
-		}
-		afterSync, err := file.Stat()
-		if err != nil || !os.SameFile(after, afterSync) || after.Size() != afterSync.Size() || after.ModTime() != afterSync.ModTime() {
-			return nil, errors.Join(errors.New("published object changed while it was synchronized"), err)
-		}
-		after = afterSync
+		return synchronizePublished(file, after)
 	}
 	return after, nil
 }
 
-func (s *casStore) verifyPublishedAtPath(parentRelative string, requiredParent os.FileInfo, leaf string, raw []byte, maximum int64, requiredFile os.FileInfo, synchronize bool, conflict string) error {
+func openPublishedFile(parent *os.File, leaf string, synchronize bool) (*os.File, error) {
+	access := syscall.O_RDONLY
+	if synchronize {
+		access = syscall.O_RDWR
+	}
+	descriptor, err := syscall.Openat(int(parent.Fd()), leaf, access|syscall.O_CLOEXEC|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		if errors.Is(err, syscall.ELOOP) {
+			return nil, errors.New("published object path exists and is not a regular file")
+		}
+		return nil, err
+	}
+	file := os.NewFile(uintptr(descriptor), leaf)
+	if file == nil {
+		return nil, closeDescriptorWithError(errors.New("could not own published object file descriptor"), descriptor)
+	}
+	return file, nil
+}
+
+func readStablePublished(file *os.File, before os.FileInfo, maximum int64) ([]byte, os.FileInfo, error) {
+	existing, err := io.ReadAll(io.LimitReader(file, maximum+1))
+	if err != nil {
+		return nil, nil, err
+	}
+	if int64(len(existing)) > maximum {
+		return nil, nil, errors.New("published object exceeds its byte bound")
+	}
+	after, err := file.Stat()
+	if err != nil {
+		return nil, nil, err
+	}
+	if !os.SameFile(before, after) || before.Size() != after.Size() || before.ModTime() != after.ModTime() {
+		return nil, nil, errors.New("published object changed while it was read")
+	}
+	return existing, after, nil
+}
+
+func synchronizePublished(file *os.File, after os.FileInfo) (os.FileInfo, error) {
+	if err := syncOpenedFile(file); err != nil {
+		return nil, err
+	}
+	afterSync, err := file.Stat()
+	if err != nil || !os.SameFile(after, afterSync) || after.Size() != afterSync.Size() || after.ModTime() != afterSync.ModTime() {
+		return nil, errors.Join(errors.New("published object changed while it was synchronized"), err)
+	}
+	return afterSync, nil
+}
+
+func (s *casStore) verifyPublishedAtPath(parentRelative string, requiredParent os.FileInfo, leaf string, raw []byte, maximum int64, requiredFile os.FileInfo, synchronize bool, conflict string) (err error) {
 	parent, parentInfo, err := s.openStoreDirectory(parentRelative, false)
 	if err != nil {
 		return err
 	}
-	defer parent.Close()
+	defer func() { err = closeWithError(err, parent) }()
 	if !os.SameFile(requiredParent, parentInfo) {
 		return errors.New("published object parent changed during commit")
 	}
@@ -373,7 +423,7 @@ func (s *casStore) verifyPublishedAtPath(parentRelative string, requiredParent o
 	return err
 }
 
-func (s *casStore) readPublished(relative string, maximum int64) ([]byte, error) {
+func (s *casStore) readPublished(relative string, maximum int64) (result []byte, err error) {
 	clean := filepath.Clean(relative)
 	if clean != relative || filepath.IsAbs(relative) || strings.HasPrefix(clean, "..") {
 		return nil, errors.New("published object path is not canonical")
@@ -383,18 +433,28 @@ func (s *casStore) readPublished(relative string, maximum int64) ([]byte, error)
 	if err != nil {
 		return nil, err
 	}
-	defer parent.Close()
+	defer func() { err = closeWithError(err, parent) }()
 	leaf := filepath.Base(relative)
-	descriptor, err := syscall.Openat(int(parent.Fd()), leaf, syscall.O_RDONLY|syscall.O_CLOEXEC|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	file, err := openPublishedFile(parent, leaf, false)
 	if err != nil {
 		return nil, err
 	}
-	file := os.NewFile(uintptr(descriptor), leaf)
-	if file == nil {
-		syscall.Close(descriptor)
-		return nil, errors.New("could not own published object descriptor")
+	defer func() { err = closeWithError(err, file) }()
+	before, err := inspectPublished(file, maximum)
+	if err != nil {
+		return nil, err
 	}
-	defer file.Close()
+	raw, after, err := readStablePublished(file, before, maximum)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.verifyPublishedAtPath(parentRelative, parentInfo, leaf, raw, maximum, after, false, "published object changed during path replay"); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
+func inspectPublished(file *os.File, maximum int64) (os.FileInfo, error) {
 	before, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -405,21 +465,10 @@ func (s *casStore) readPublished(relative string, maximum int64) ([]byte, error)
 	if before.Size() > maximum {
 		return nil, errors.New("published object exceeds its byte bound")
 	}
-	raw, err := io.ReadAll(io.LimitReader(file, maximum+1))
-	if err != nil || int64(len(raw)) > maximum {
-		return nil, errors.Join(errors.New("published object read exceeds its bound"), err)
-	}
-	after, err := file.Stat()
-	if err != nil || !os.SameFile(before, after) || before.Size() != after.Size() || before.ModTime() != after.ModTime() {
-		return nil, errors.Join(errors.New("published object changed while it was read"), err)
-	}
-	if err := s.verifyPublishedAtPath(parentRelative, parentInfo, leaf, raw, maximum, after, false, "published object changed during path replay"); err != nil {
-		return nil, err
-	}
-	return raw, nil
+	return before, nil
 }
 
-func (s *casStore) listPublishedDirectory(relative string, maximum int) ([]string, error) {
+func (s *casStore) listPublishedDirectory(relative string, maximum int) (result []string, err error) {
 	if maximum < 1 {
 		return nil, errors.New("directory entry bound must be positive")
 	}
@@ -427,7 +476,7 @@ func (s *casStore) listPublishedDirectory(relative string, maximum int) ([]strin
 	if err != nil {
 		return nil, err
 	}
-	defer directory.Close()
+	defer func() { err = closeWithError(err, directory) }()
 	entries, err := directory.ReadDir(maximum + 1)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
@@ -435,6 +484,25 @@ func (s *casStore) listPublishedDirectory(relative string, maximum int) ([]strin
 	if len(entries) > maximum {
 		return nil, errors.New("published directory exceeds its entry bound")
 	}
+	names, err := publishedEntryNames(entries)
+	if err != nil {
+		return nil, err
+	}
+	replayed, replayedInfo, err := s.openStoreDirectory(relative, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := closeWithError(nil, replayed); err != nil {
+		return nil, err
+	}
+	if !os.SameFile(directoryInfo, replayedInfo) {
+		return nil, errors.New("published directory changed while it was listed")
+	}
+	sort.Strings(names)
+	return names, nil
+}
+
+func publishedEntryNames(entries []os.DirEntry) ([]string, error) {
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		name := entry.Name()
@@ -443,15 +511,6 @@ func (s *casStore) listPublishedDirectory(relative string, maximum int) ([]strin
 		}
 		names = append(names, name)
 	}
-	replayed, replayedInfo, err := s.openStoreDirectory(relative, false)
-	if err != nil {
-		return nil, err
-	}
-	replayed.Close()
-	if !os.SameFile(directoryInfo, replayedInfo) {
-		return nil, errors.New("published directory changed while it was listed")
-	}
-	sort.Strings(names)
 	return names, nil
 }
 
@@ -504,7 +563,11 @@ func validateEffectiveOwner(info os.FileInfo, label string) error {
 	if !ok {
 		return fmt.Errorf("%s ownership cannot be verified", label)
 	}
-	if stat.Uid != uint32(os.Geteuid()) {
+	uid, err := checkedUID(os.Geteuid())
+	if err != nil {
+		return fmt.Errorf("%s ownership: %w", label, err)
+	}
+	if stat.Uid != uid {
 		return fmt.Errorf("%s is not owned by the effective user", label)
 	}
 	return nil
@@ -521,22 +584,22 @@ func openDirectoryPathNoFollow(pathname string) (*os.File, error) {
 	}
 	current := os.NewFile(uintptr(descriptor), string(os.PathSeparator))
 	if current == nil {
-		syscall.Close(descriptor)
-		return nil, errors.New("could not own filesystem-root descriptor")
+		return nil, closeDescriptorWithError(errors.New("could not own filesystem-root descriptor"), descriptor)
 	}
 	trimmed := strings.TrimPrefix(absolute, string(os.PathSeparator))
 	if trimmed == "" {
 		return current, nil
 	}
 	for _, component := range strings.Split(trimmed, string(os.PathSeparator)) {
-		if component == "" || component == "." || component == ".." {
-			current.Close()
-			return nil, errors.New("directory path is not canonical")
+		if !canonicalDirectoryComponent(component) {
+			return nil, closeWithError(errors.New("directory path is not canonical"), current)
 		}
 		next, err := openDirectoryAt(current, component)
-		current.Close()
-		if err != nil {
-			return nil, err
+		if closeErr := closeWithError(err, current); closeErr != nil {
+			if next != nil {
+				closeErr = closeWithError(closeErr, next)
+			}
+			return nil, closeErr
 		}
 		current = next
 	}
@@ -550,8 +613,7 @@ func openDirectoryAt(parent *os.File, name string) (*os.File, error) {
 	}
 	file := os.NewFile(uintptr(descriptor), name)
 	if file == nil {
-		syscall.Close(descriptor)
-		return nil, errors.New("could not own directory descriptor")
+		return nil, closeDescriptorWithError(errors.New("could not own directory descriptor"), descriptor)
 	}
 	return file, nil
 }
@@ -564,8 +626,7 @@ func duplicateFile(file *os.File, name string) (*os.File, error) {
 	syscall.CloseOnExec(descriptor)
 	duplicate := os.NewFile(uintptr(descriptor), name)
 	if duplicate == nil {
-		syscall.Close(descriptor)
-		return nil, errors.New("could not own duplicated directory descriptor")
+		return nil, closeDescriptorWithError(errors.New("could not own duplicated directory descriptor"), descriptor)
 	}
 	return duplicate, nil
 }
@@ -579,7 +640,7 @@ func validateStoreRelativeDirectory(relative string) ([]string, error) {
 	}
 	components := strings.Split(filepath.ToSlash(relative), "/")
 	for _, component := range components {
-		if component == "" || component == "." || component == ".." {
+		if !canonicalDirectoryComponent(component) {
 			return nil, errors.New("unsafe store directory component")
 		}
 	}
@@ -596,39 +657,41 @@ func (s *casStore) openDirectoryFromRoot(relative string, create bool) (*os.File
 		return nil, nil, err
 	}
 	for _, component := range components {
-		next, openErr := openDirectoryAt(current, component)
-		if errors.Is(openErr, os.ErrNotExist) && create {
-			if mkdirErr := syscall.Mkdirat(int(current.Fd()), component, 0o700); mkdirErr != nil && !errors.Is(mkdirErr, syscall.EEXIST) {
-				current.Close()
-				return nil, nil, mkdirErr
+		next, openErr := openOrCreateDirectoryAt(current, component, create)
+		if closeErr := closeWithError(openErr, current); closeErr != nil {
+			if next != nil {
+				closeErr = closeWithError(closeErr, next)
 			}
-			if syncErr := syncOpenedFile(current); syncErr != nil {
-				current.Close()
-				return nil, nil, syncErr
-			}
-			next, openErr = openDirectoryAt(current, component)
-		}
-		current.Close()
-		if openErr != nil {
-			return nil, nil, openErr
+			return nil, nil, closeErr
 		}
 		info, statErr := next.Stat()
 		if statErr != nil {
-			next.Close()
-			return nil, nil, statErr
+			return nil, nil, closeWithError(statErr, next)
 		}
 		if err := validateOwnedDirectory(info, relative); err != nil {
-			next.Close()
-			return nil, nil, err
+			return nil, nil, closeWithError(err, next)
 		}
 		current = next
 	}
 	info, err := current.Stat()
 	if err != nil {
-		current.Close()
-		return nil, nil, err
+		return nil, nil, closeWithError(err, current)
 	}
 	return current, info, nil
+}
+
+func openOrCreateDirectoryAt(current *os.File, component string, create bool) (*os.File, error) {
+	next, openErr := openDirectoryAt(current, component)
+	if errors.Is(openErr, os.ErrNotExist) && create {
+		if mkdirErr := syscall.Mkdirat(int(current.Fd()), component, 0o700); mkdirErr != nil && !errors.Is(mkdirErr, syscall.EEXIST) {
+			return nil, mkdirErr
+		}
+		if syncErr := syncOpenedFile(current); syncErr != nil {
+			return nil, syncErr
+		}
+		next, openErr = openDirectoryAt(current, component)
+	}
+	return next, openErr
 }
 
 func (s *casStore) openStoreDirectory(relative string, create bool) (*os.File, os.FileInfo, error) {
@@ -641,22 +704,21 @@ func (s *casStore) openStoreDirectory(relative string, create bool) (*os.File, o
 	}
 	replayed, replayedInfo, err := s.openDirectoryFromRoot(relative, false)
 	if err != nil {
-		held.Close()
-		return nil, nil, err
+		return nil, nil, closeWithError(err, held)
 	}
-	replayed.Close()
+	if err := closeWithError(nil, replayed); err != nil {
+		return nil, nil, closeWithError(err, held)
+	}
 	if !os.SameFile(heldInfo, replayedInfo) {
-		held.Close()
-		return nil, nil, errors.New("store directory changed during path replay")
+		return nil, nil, closeWithError(errors.New("store directory changed during path replay"), held)
 	}
 	if err := s.verifyRootPath(); err != nil {
-		held.Close()
-		return nil, nil, err
+		return nil, nil, closeWithError(err, held)
 	}
 	return held, heldInfo, nil
 }
 
-func (s *casStore) verifyRootPath() error {
+func (s *casStore) verifyRootPath() (err error) {
 	if s.rootFile == nil {
 		return errors.New("store root descriptor is closed")
 	}
@@ -664,7 +726,7 @@ func (s *casStore) verifyRootPath() error {
 	if err != nil {
 		return fmt.Errorf("reopen output root: %w", err)
 	}
-	defer current.Close()
+	defer func() { err = closeWithError(err, current) }()
 	info, err := current.Stat()
 	if err != nil {
 		return err
@@ -695,4 +757,8 @@ func stripPrefixedID(value, prefix string) (string, error) {
 		return "", errors.New("content-addressed ID is not canonical lowercase")
 	}
 	return digest, nil
+}
+
+func canonicalDirectoryComponent(component string) bool {
+	return component != "" && component != "." && component != ".."
 }

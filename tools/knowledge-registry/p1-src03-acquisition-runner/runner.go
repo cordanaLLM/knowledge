@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" // #nosec G505 -- Git blob object identifiers require SHA-1; content integrity is also bound by SHA-256.
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -660,7 +660,16 @@ func (r *runner) getBlob(ctx context.Context, repository string, expected contra
 	if blob.SHA != expected.GitBlobSHA1 || blob.Size == nil || *blob.Size != expected.Bytes || blob.Encoding != "base64" {
 		return nil, errors.New("blob response identity, encoding, or size drifted")
 	}
-	compact := strings.NewReplacer("\n", "", "\r", "").Replace(blob.Content)
+	raw, err := decodeGitBlob(blob.Content, expected)
+	if err != nil {
+		return nil, err
+	}
+	r.blobCache[key] = raw
+	return raw, nil
+}
+
+func decodeGitBlob(content string, expected contractFile) ([]byte, error) {
+	compact := strings.NewReplacer("\n", "", "\r", "").Replace(content)
 	raw, err := base64.StdEncoding.Strict().DecodeString(compact)
 	if err != nil {
 		return nil, errors.New("blob content is not strict base64")
@@ -669,7 +678,7 @@ func (r *runner) getBlob(ctx context.Context, repository string, expected contra
 		return nil, errors.New("decoded blob size drifted")
 	}
 	identity := append([]byte("blob "+strconv.Itoa(len(raw))+"\x00"), raw...)
-	gitDigest := sha1.Sum(identity)
+	gitDigest := sha1.Sum(identity) // #nosec G401 -- Reconstruct the protocol-defined Git blob SHA-1 identity; SHA-256 separately binds the artifact bytes.
 	if hex.EncodeToString(gitDigest[:]) != expected.GitBlobSHA1 {
 		return nil, errors.New("decoded blob does not reproduce the exact Git SHA-1")
 	}
@@ -677,11 +686,10 @@ func (r *runner) getBlob(ctx context.Context, repository string, expected contra
 	if "sha256:"+hex.EncodeToString(rawDigest[:]) != expected.RawSHA256 {
 		return nil, errors.New("decoded blob raw SHA-256 drifted")
 	}
-	r.blobCache[key] = raw
 	return raw, nil
 }
 
-func (r *runner) getJSON(ctx context.Context, repository, suffix string, destination any) error {
+func (r *runner) getJSON(ctx context.Context, repository, suffix string, destination any) (err error) {
 	if _, ok := r.allowedRepos[repository]; !ok {
 		return errors.New("repository is outside the exact three-source denominator")
 	}
@@ -689,7 +697,7 @@ func (r *runner) getJSON(ctx context.Context, repository, suffix string, destina
 		return errors.New("HTTP request is outside the exact capability")
 	}
 	endpoint := r.baseURL.String() + "/repos/" + repository + suffix
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil) // #nosec G704 -- newRunner pins the production API origin to api.github.com and forbids redirects before sending; alternate origins require explicit test mode.
 	if err != nil {
 		return err
 	}
@@ -701,32 +709,17 @@ func (r *runner) getJSON(ctx context.Context, repository, suffix string, destina
 		request.Header.Set("Authorization", "Bearer "+r.token)
 	}
 	r.requests++
-	response, err := r.client.Do(request)
+	response, err := r.client.Do(request) // #nosec G704 -- newRunner pins the production API origin to api.github.com and forbids redirects before sending; alternate origins require explicit test mode.
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
-		return fmt.Errorf("GitHub REST returned HTTP %d", response.StatusCode)
-	}
-	if response.Request == nil || response.Request.URL.String() != endpoint {
-		return errors.New("Git-object response arrived through a redirected or changed endpoint")
-	}
-	if len(response.Header.Values("Link")) != 0 {
-		return errors.New("Git-object endpoint returned a pagination Link header")
-	}
-	encodings := response.Header.Values("Content-Encoding")
-	if len(encodings) > 1 || (len(encodings) == 1 && encodings[0] != "identity") {
-		return errors.New("Git-object response used an unexpected content encoding")
-	}
-	contentTypes := response.Header.Values("Content-Type")
-	if len(contentTypes) != 1 {
-		return errors.New("Git-object response has an ambiguous or missing content type")
-	}
-	contentType, _, err := mime.ParseMediaType(contentTypes[0])
-	if err != nil || contentType != "application/json" {
-		return errors.New("Git-object response is not application/json")
+	defer func() { err = closeWithError(err, response.Body) }()
+	return r.readGitObjectResponse(response, endpoint, destination)
+}
+
+func (r *runner) readGitObjectResponse(response *http.Response, endpoint string, destination any) error {
+	if err := validateGitObjectResponse(response, endpoint); err != nil {
+		return err
 	}
 	remaining := maxResponseBytes - r.responseBytes
 	if remaining <= 0 {
@@ -749,6 +742,48 @@ func (r *runner) getJSON(ctx context.Context, repository, suffix string, destina
 	}
 	if err := json.Unmarshal(raw, destination); err != nil {
 		return err
+	}
+	return nil
+}
+
+func validateGitObjectResponse(response *http.Response, endpoint string) error {
+	if err := gitObjectStatusError(response); err != nil {
+		return err
+	}
+
+	if response.Request == nil || response.Request.URL.String() != endpoint {
+		return errors.New("Git-object response arrived through a redirected or changed endpoint")
+	}
+	if len(response.Header.Values("Link")) != 0 {
+		return errors.New("Git-object endpoint returned a pagination Link header")
+	}
+	encodings := response.Header.Values("Content-Encoding")
+	if len(encodings) > 1 || (len(encodings) == 1 && encodings[0] != "identity") {
+		return errors.New("Git-object response used an unexpected content encoding")
+	}
+	return validateGitObjectContentType(response)
+}
+
+func validateGitObjectContentType(response *http.Response) error {
+	contentTypes := response.Header.Values("Content-Type")
+	if len(contentTypes) != 1 {
+		return errors.New("Git-object response has an ambiguous or missing content type")
+	}
+	contentType, _, err := mime.ParseMediaType(contentTypes[0])
+	if err != nil || contentType != "application/json" {
+		return errors.New("Git-object response is not application/json")
+	}
+
+	return nil
+}
+
+func gitObjectStatusError(response *http.Response) error {
+	if response.StatusCode != http.StatusOK {
+		_, drainErr := io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
+		if drainErr != nil {
+			drainErr = fmt.Errorf("drain Git-object error response: %w", drainErr)
+		}
+		return errors.Join(fmt.Errorf("GitHub REST returned HTTP %d", response.StatusCode), drainErr)
 	}
 	return nil
 }
