@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0.0",
+  "profiles": {
+    "go_indented_utf8_htmlsafe_newline": {
+      "implementations": [
+        "tools/knowledge-retrieval/util.go",
+        "tools/task-evidence-librarian/util.go"
+      ]
+    },
+    "registry_compact_utf8": {
+      "implementations": [
+        "tools/knowledge-registry/knowledge_registry.py",
+        "tools/knowledge-registry/p1-src03-acquisition-runner/contract.go"
+      ]
+    },
+    "storage_compact_ascii_newline": {
+      "implementations": [
+        "apps/task-evidence/storage-canary/files/verify_raw_capture.py"
+      ]
+    }
+  },
+  "values": [
+    {
+      "canonical": {
+        "go_indented_utf8_htmlsafe_newline": "{\n  \"alpha\": [\n    1,\n    true,\n    null\n  ],\n  \"fraction\": 1.25,\n  \"zeta\": \"last\"\n}\n",
+        "registry_compact_utf8": "{\"alpha\":[1,true,null],\"fraction\":1.25,\"zeta\":\"last\"}",
+        "storage_compact_ascii_newline": "{\"alpha\":[1,true,null],\"fraction\":1.25,\"zeta\":\"last\"}\n"
+      },
+      "id": "ordered-scalars",
+      "value": {
+        "alpha": [
+          1,
+          true,
+          null
+        ],
+        "fraction": 1.25,
+        "zeta": "last"
+      }
+    },
+    {
+      "canonical": {
+        "go_indented_utf8_htmlsafe_newline": "{\n  \"emoji\": \"😀\",\n  \"html\": \"\\u003c\\u003e\\u0026\",\n  \"line\": \"\\u2028\",\n  \"é\": \"雪\"\n}\n",
+        "registry_compact_utf8": "{\"emoji\":\"😀\",\"html\":\"<>&\",\"line\":\" \",\"é\":\"雪\"}",
+        "storage_compact_ascii_newline": "{\"emoji\":\"\\ud83d\\ude00\",\"html\":\"<>&\",\"line\":\"\\u2028\",\"\\u00e9\":\"\\u96ea\"}\n"
+      },
+      "id": "unicode-and-escaping",
+      "value": {
+        "emoji": "😀",
+        "html": "<>&",
+        "line": " ",
+        "é": "雪"
+      }
+    },
+    {
+      "id": "literal-backslash-line-separators",
+      "value": {
+        "literal": "\\u2028/\\u2029"
+      },
+      "canonical": {
+        "go_indented_utf8_htmlsafe_newline": "{\n  \"literal\": \"\\\\u2028/\\\\u2029\"\n}\n",
+        "registry_compact_utf8": "{\"literal\":\"\\\\u2028/\\\\u2029\"}",
+        "storage_compact_ascii_newline": "{\"literal\":\"\\\\u2028/\\\\u2029\"}\n"
+      }
+    },
+    {
+      "id": "integral-float-types",
+      "value": {
+        "negative_zero": -0.0,
+        "positive": 1.0,
+        "million": 1000000.0
+      },
+      "canonical": {
+        "go_indented_utf8_htmlsafe_newline": "{\n  \"million\": 1000000,\n  \"negative_zero\": -0,\n  \"positive\": 1\n}\n",
+        "registry_compact_utf8": "{\"million\":1000000.0,\"negative_zero\":-0.0,\"positive\":1.0}",
+        "storage_compact_ascii_newline": "{\"million\":1000000.0,\"negative_zero\":-0.0,\"positive\":1.0}\n"
+      }
+    }
+  ],
+  "reject_raw": [
+    {
+      "id": "duplicate-object-key",
+      "raw_utf8": "{\"a\":1,\"a\":2}"
+    },
+    {
+      "id": "non-finite-token",
+      "raw_utf8": "{\"a\":NaN}"
+    },
+    {
+      "id": "overflow-to-non-finite",
+      "raw_utf8": "{\"a\":1e400}"
+    },
+    {
+      "id": "integer-outside-int64",
+      "raw_utf8": "{\"a\":9223372036854775808}"
+    },
+    {
+      "id": "unpaired-surrogate",
+      "raw_utf8": "{\"a\":\"\\ud800\"}"
+    },
+    {
+      "id": "multiple-values",
+      "raw_utf8": "{}\n{}"
+    },
+    {
+      "id": "invalid-utf8",
+      "raw_base64": "eyJhIjoi/yJ9"
+    }
+  ],
+  "reject_noncanonical": [
+    {
+      "id": "unsorted-object-keys",
+      "raw_utf8": "{\"b\":1,\"a\":2}"
+    },
+    {
+      "id": "leading-whitespace",
+      "raw_utf8": " {\"a\":1}"
+    },
+    {
+      "id": "extra-newline",
+      "raw_utf8": "{\"a\":1}\n\n"
+    },
+    {
+      "id": "exponent-number-spelling",
+      "raw_utf8": "{\"a\":1e0}",
+      "canonical": {
+        "registry_compact_utf8": "{\"a\":1.0}"
+      }
+    },
+    {
+      "id": "redundant-fraction-number-spelling",
+      "raw_utf8": "{\"a\":1.00}",
+      "canonical": {
+        "registry_compact_utf8": "{\"a\":1.0}"
+      }
+    },
+    {
+      "id": "negative-zero-exponent-spelling",
+      "raw_utf8": "{\"a\":-0e0}",
+      "canonical": {
+        "registry_compact_utf8": "{\"a\":-0.0}"
+      }
+    },
+    {
+      "id": "negative-zero-integer-spelling",
+      "raw_utf8": "{\"a\":-0}",
+      "canonical": {
+        "registry_compact_utf8": "{\"a\":0}"
+      }
+    }
+  ],
+  "bounds": {
+    "byte_limit": {
+      "maximum": 8,
+      "raw_utf8": "{\"payload\":\"0123456789\"}"
+    },
+    "nested_arrays": [
+      {
+        "expected": {
+          "go_indented_utf8_htmlsafe_newline": "accept",
+          "registry_compact_utf8": "accept",
+          "storage_compact_ascii_newline": "accept"
+        },
+        "id": "common-depth",
+        "levels": 63
+      },
+      {
+        "expected": {
+          "go_indented_utf8_htmlsafe_newline": "accept",
+          "registry_compact_utf8": "accept",
+          "storage_compact_ascii_newline": "reject"
+        },
+        "id": "storage-depth-boundary",
+        "levels": 64
+      },
+      {
+        "id": "registry-mid-depth",
+        "levels": 65,
+        "expected": {
+          "go_indented_utf8_htmlsafe_newline": "accept",
+          "registry_compact_utf8": "accept",
+          "storage_compact_ascii_newline": "reject"
+        }
+      },
+      {
+        "id": "registry-last-accepted-depth",
+        "levels": 128,
+        "expected": {
+          "go_indented_utf8_htmlsafe_newline": "accept",
+          "registry_compact_utf8": "accept",
+          "storage_compact_ascii_newline": "reject"
+        }
+      },
+      {
+        "expected": {
+          "go_indented_utf8_htmlsafe_newline": "accept",
+          "registry_compact_utf8": "reject",
+          "storage_compact_ascii_newline": "reject"
+        },
+        "id": "registry-depth-boundary",
+        "levels": 129
+      }
+    ]
+  }
+}
