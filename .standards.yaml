@@ -49,3 +49,66 @@ exceptions:
     tool: trivy
     reason: adoption scaffolds no CI job for trivy declared by facet "security:high"; run it in a workflow, or remove this entry
     expires: "2027-01-21"
+  - rule: gosec
+    path: tools/knowledge-registry/p1-src03-acquisition-runner/runner.go
+    gosec_rules: [G401, G505, G704]
+    reason: "category D: frozen P1-SRC-03 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
+  - rule: gosec
+    path: tools/knowledge-registry/p1-src03-acquisition-runner/store.go
+    gosec_rules: [G104, G115]
+    reason: "category D: frozen P1-SRC-03 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
+  - rule: gosec
+    path: tools/knowledge-registry/source-acquisition-runner-v3/contract.go
+    gosec_rules: [G104]
+    reason: "category D: frozen v3 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
+  - rule: gosec
+    path: tools/knowledge-registry/source-acquisition-runner-v3/plan.go
+    gosec_rules: [G204]
+    reason: "category D: frozen v3 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
+  - rule: gosec
+    path: tools/knowledge-registry/source-acquisition-runner-v3/runner.go
+    gosec_rules: [G401, G505, G704]
+    reason: "category D: frozen v3 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
+  - rule: gosec
+    path: tools/knowledge-registry/source-acquisition-runner-v3/store.go
+    gosec_rules: [G104, G115]
+    reason: "category D: frozen v3 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
+  - rule: gosec
+    path: tools/knowledge-registry/source-acquisition-runner/cas.go
+    gosec_rules: [G104, G115]
+    reason: "category D: frozen P1-SRC-02 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
+  - rule: gosec
+    path: tools/knowledge-registry/source-acquisition-runner/contract.go
+    gosec_rules: [G104, G602]
+    reason: "category D: frozen P1-SRC-02 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
+  - rule: gosec
+    path: tools/knowledge-registry/source-acquisition-runner/github.go
+    gosec_rules: [G104, G401, G505, G704]
+    reason: "category D: frozen P1-SRC-02 runner; its execution manifest or byte-identity test pins this file by sha256, so a fix or a #nosec line mark breaks the pin; fix the findings when the runner is frozen again (answer engine-knowledge-gosec-frozen-runner-20261023)"
+    category: D
+    entered: "2026-10-23"
+    expires: "2027-02-20"
