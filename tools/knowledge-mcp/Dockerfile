@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # transition receipt. Without it the broker fails closed on every signed store,
 # so openssh-client ships here too. `ldd /usr/bin/ssh-keygen` on this exact
 # base resolves libselinux, libcrypto and libpcre2-8 beyond glibc.
-FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171 AS gitprovider
+FROM debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc AS gitprovider
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git openssh-client \
     && rm -rf /var/lib/apt/lists/*
