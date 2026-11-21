@@ -1,2 +1,2 @@
-FROM docker.io/library/python:3.13-slim@sha256:48d884813cf44e927cf64c5529dd630dd3b18338c6dc727991eef9b71e934a20
+FROM docker.io/library/python:3.15-slim@sha256:fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85
 RUN pip install --no-cache-dir pytest==9.1.1
