@@ -3,7 +3,7 @@ module github.com/cordanaLLM/knowledge/tools/knowledge-mcp
 go 1.26
 
 require (
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	golang.org/x/sys v0.47.0
 	modernc.org/sqlite v1.58.0
 )
