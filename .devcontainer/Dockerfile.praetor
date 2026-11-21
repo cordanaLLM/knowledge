@@ -13,7 +13,7 @@ RUN echo '40e8e88b5dc6167e4d6be684c0135c379b2b428d0c39647066d9f435be6b36f2  /tmp
 ENV GOTOOLCHAIN=local CGO_ENABLED=0 GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org
 RUN sha256sum go.mod go.sum > /tmp/praetor-modules.sha256 && /usr/local/go/bin/go mod download && /usr/local/go/bin/go mod verify && sha256sum -c /tmp/praetor-modules.sha256
 RUN /usr/local/go/bin/go build -mod=readonly -trimpath -buildvcs=false -o /out/praetorctl ./cmd/standardsctl
-FROM mcr.microsoft.com/devcontainers/base@sha256:91eff046d5c12318fc98e59258982b87ba896c467427ed8b5dab5a02107a5db7
+FROM mcr.microsoft.com/devcontainers/base@sha256:41ff7ce12ec45f2704f27a6e091831186ad922ec8112e6339425bfefdf5a70f9
 COPY --from=praetor_build --chmod=0444 /praetor-source/LICENSE /usr/local/share/praetor/LICENSE
 COPY --from=praetor_build --chmod=0555 /out/praetorctl /usr/local/bin/praetorctl
 COPY --from=praetor_build --chmod=0555 /out/praetorctl /usr/local/bin/standardsctl
