@@ -1,6 +1,6 @@
 # kb-mcp — tiny FastMCP SSE/HTTP server over the Open WebUI knowledge base.
 # Build + push to home Harbor (LAN pulls), then digest-pin in values.yaml.
-FROM python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 
 # This manifest owns the exact Python dependency closure. The versions match
 # the deployed digest recorded in values.yaml.
