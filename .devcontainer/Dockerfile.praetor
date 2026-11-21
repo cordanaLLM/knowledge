@@ -1,5 +1,5 @@
 # Praetor bootstrap v1; selected source digest sha256:7e06054074cc7bdda93337b335905eae55e41a99f3a47b97fdb3181b63e89693
-FROM docker.io/library/golang@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS praetor_build
+FROM docker.io/library/golang@sha256:205c7636d74e0ffbe3d007162df7d74f859f5a8c8322dfb9f907977686c126cf AS praetor_build
 WORKDIR /praetor-source
 COPY ["praetor-source.000.b64", "/tmp/praetor-source/000.b64"]
 COPY ["praetor-source.001.b64", "/tmp/praetor-source/001.b64"]
