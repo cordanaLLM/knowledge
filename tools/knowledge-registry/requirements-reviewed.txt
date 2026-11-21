@@ -7,4 +7,4 @@ jsonschema-specifications==2025.9.1
 # jsonschema 4.26.0 requires referencing>=0.28.4.
 referencing==0.37.0
 # referencing 0.37.0 requires rpds-py>=0.7.0.
-rpds-py==2026.6.3
+rpds-py==2026.9.1
